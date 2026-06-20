@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>شركة لانا الطبية | لوحة الموظف</title>
+<title>لوحة الموظف</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
 
@@ -20,38 +20,31 @@
 }
 
 *{box-sizing:border-box}
-
 body{
   margin:0;
   font-family:'Cairo',sans-serif;
   background:linear-gradient(135deg,var(--bg1),var(--bg2));
-  color:#0f172a;
 }
 
-/* Topbar */
 .topbar{
   background:var(--primary);
   color:#fff;
-  padding:18px 24px;
+  padding:16px 24px;
   display:flex;
   justify-content:space-between;
   align-items:center;
 }
-.topbar h2{
-  margin:0;
-}
+
 .logout-btn{
   background:#fff;
   color:var(--primary);
-  padding:8px 16px;
+  padding:8px 14px;
+  border-radius:12px;
   border:none;
-  border-radius:14px;
   font-weight:700;
   cursor:pointer;
 }
-.logout-btn:hover{opacity:.9}
 
-/* Layout */
 .container{
   max-width:1300px;
   margin:40px auto;
@@ -62,24 +55,16 @@ body{
   background:linear-gradient(135deg,#0f172a,#134e4a);
   color:#fff;
   padding:35px;
-  border-radius:28px;
+  border-radius:24px;
   margin-bottom:30px;
-}
-.hero h1{
-  margin:0 0 8px;
-  font-size:28px;
-}
-.hero p{
-  margin:0;
-  opacity:.9;
 }
 
 .grid{
   display:grid;
   gap:24px;
 }
-.grid-3{
-  grid-template-columns:repeat(auto-fit,minmax(350px,1fr));
+.grid-2{
+  grid-template-columns:repeat(auto-fit,minmax(400px,1fr));
 }
 
 .card{
@@ -91,11 +76,8 @@ body{
 
 .card h3{
   margin-top:0;
-  font-weight:900;
-  margin-bottom:18px;
 }
 
-/* Info rows */
 .info-row{
   display:flex;
   justify-content:space-between;
@@ -104,24 +86,18 @@ body{
 }
 .info-row:last-child{border:none}
 
-.label{
-  color:var(--muted);
-  font-weight:700;
-}
-.value{
-  font-weight:900;
-}
+.label{color:var(--muted);font-weight:700}
+.value{font-weight:900}
 
-/* Forms */
 input, textarea{
   width:100%;
   padding:12px;
   margin:8px 0 14px 0;
   border-radius:14px;
   border:1px solid var(--line);
-  font-family:'Cairo',sans-serif;
 }
-textarea{min-height:110px}
+
+textarea{min-height:100px}
 
 .submit-btn{
   width:100%;
@@ -133,10 +109,7 @@ textarea{min-height:110px}
   font-weight:800;
   cursor:pointer;
 }
-.submit-btn:hover{opacity:.9}
 
-/* Table */
-.table-wrap{overflow:auto}
 table{
   width:100%;
   border-collapse:collapse;
@@ -148,12 +121,6 @@ th,td{
 }
 th{
   background:#f8fafc;
-  font-weight:900;
-}
-
-/* Responsive */
-@media(max-width:768px){
-  .container{margin:20px auto}
 }
 </style>
 </head>
@@ -161,109 +128,192 @@ th{
 
 <div class="topbar">
   <h2>لوحة الموظف</h2>
-  <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+  <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
 </div>
 
 <div class="container">
 
-  <div class="hero">
-    <h1>مرحباً بك 👋</h1>
-    <p>هذه لوحة الموظف الرسمية المرتبطة مباشرة بقاعدة البيانات.</p>
-  </div>
+<div class="hero">
+  <h1>مرحباً بك 👋</h1>
+  <p>لوحة الموظف الرسمية</p>
+</div>
 
-  <div class="grid grid-3">
+<div class="grid grid-2">
 
-    <!-- معلومات الموظف -->
-    <div class="card">
-      <h3>معلومات الموظف</h3>
-      <div class="info-row"><span class="label">الاسم</span><span id="empName" class="value"></span></div>
-      <div class="info-row"><span class="label">رقم الهوية</span><span id="empNationalId" class="value"></span></div>
-      <div class="info-row"><span class="label">القسم</span><span id="empDepartment" class="value"></span></div>
-      <div class="info-row"><span class="label">المسمى الوظيفي</span><span id="empPosition" class="value"></span></div>
-      <div class="info-row"><span class="label">البريد</span><span id="empEmail" class="value"></span></div>
-    </div>
+<!-- معلومات الموظف -->
+<div class="card">
+<h3>معلومات الموظف</h3>
+<div class="info-row"><span class="label">الاسم</span><span id="empName" class="value"></span></div>
+<div class="info-row"><span class="label">رقم الهوية</span><span id="empNationalId" class="value"></span></div>
+<div class="info-row"><span class="label">القسم</span><span id="empDepartment" class="value"></span></div>
+<div class="info-row"><span class="label">المسمى الوظيفي</span><span id="empPosition" class="value"></span></div>
+<div class="info-row"><span class="label">البريد</span><span id="empEmail" class="value"></span></div>
+</div>
 
-    <!-- طلب إجازة -->
-    <div class="card">
-      <h3>طلب إجازة</h3>
-      <input id="leaveStart" type="date">
-      <input id="leaveEnd" type="date">
-      <textarea id="leaveReason" placeholder="سبب الإجازة"></textarea>
-      <button class="submit-btn">إرسال الطلب</button>
-    </div>
+<!-- طلب إجازة -->
+<div class="card">
+<h3>طلب إجازة</h3>
+<input id="leaveStart" type="date">
+<input id="leaveEnd" type="date">
+<textarea id="leaveReason" placeholder="سبب الإجازة"></textarea>
+<button class="submit-btn" onclick="submitRequest('leave')">إرسال</button>
+</div>
 
-    <!-- طلب سلفة -->
-    <div class="card">
-      <h3>طلب سلفة</h3>
-      <input id="loanAmount" type="number" placeholder="المبلغ">
-      <textarea id="loanReason" placeholder="سبب السلفة"></textarea>
-      <button class="submit-btn">إرسال الطلب</button>
-    </div>
+<!-- طلب سلفة -->
+<div class="card">
+<h3>طلب سلفة</h3>
+<input id="loanAmount" type="number" placeholder="المبلغ">
+<textarea id="loanReason" placeholder="سبب السلفة"></textarea>
+<button class="submit-btn" onclick="submitRequest('loan')">إرسال</button>
+</div>
 
-    <!-- شكوى -->
-    <div class="card">
-      <h3>إرسال شكوى</h3>
-      <textarea id="complaintText" placeholder="اكتب الشكوى"></textarea>
-      <button class="submit-btn">إرسال الشكوى</button>
-    </div>
+<!-- شكوى -->
+<div class="card">
+<h3>شكوى</h3>
+<textarea id="complaintText" placeholder="اكتب الشكوى"></textarea>
+<button class="submit-btn" onclick="submitRequest('complaint')">إرسال</button>
+</div>
 
-    <!-- طلب ترقية -->
-    <div class="card">
-      <h3>طلب ترقية</h3>
-      <input id="promotionTitle" type="text" placeholder="المسمى المطلوب">
-      <textarea id="promotionReason" placeholder="سبب الترقية"></textarea>
-      <button class="submit-btn">إرسال الطلب</button>
-    </div>
+<!-- طلب ترقية -->
+<div class="card">
+<h3>طلب ترقية</h3>
+<input id="promotionTitle" type="text" placeholder="المسمى المطلوب">
+<textarea id="promotionReason" placeholder="سبب الترقية"></textarea>
+<button class="submit-btn" onclick="submitRequest('promotion')">إرسال</button>
+</div>
 
-    <!-- رفع PDF -->
-    <div class="card">
-      <h3>رفع ملف PDF</h3>
-      <input type="file" id="fileUpload" accept="application/pdf">
-      <button class="submit-btn" onclick="uploadFile()">رفع الملف</button>
-      <p id="uploadStatus"></p>
-    </div>
+<!-- رفع ملف -->
+<div class="card">
+<h3>رفع ملف PDF</h3>
+<input type="file" id="fileUpload" accept="application/pdf">
+<button class="submit-btn" onclick="uploadFile()">رفع</button>
+</div>
 
-    <!-- سجل الطلبات -->
-    <div class="card">
-      <h3>سجل الطلبات</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>نوع الطلب</th>
-              <th>التاريخ</th>
-              <th>الحالة</th>
-              <th>رد الإدارة</th>
-            </tr>
-          </thead>
-          <tbody id="requestsTable"></tbody>
-        </table>
-      </div>
-    </div>
+<!-- سجل الطلبات -->
+<div class="card">
+<h3>سجل الطلبات</h3>
+<table>
+<thead>
+<tr>
+<th>النوع</th>
+<th>التاريخ</th>
+<th>الحالة</th>
+<th>رد الإدارة</th>
+</tr>
+</thead>
+<tbody id="requestsTable"></tbody>
+</table>
+</div>
 
-  </div>
-
+</div>
 </div>
 
 <script>
 const API_BASE = "https://daring-trust-production-8c34.up.railway.app";
 
-async function loadEmployee() {
+async function getEmployee(){
   const name = sessionStorage.getItem("empName");
   const nationalId = sessionStorage.getItem("empNationalId");
 
-  if (!name || !nationalId) {
-    window.location.href = "/";
-    return;
+  const res = await fetch(API_BASE + "/employees");
+  const employees = await res.json();
+
+  return employees.find(e => e.name === name && e.national_id === nationalId);
+}
+
+async function loadEmployee(){
+  const emp = await getEmployee();
+  if(!emp){ window.location.href="/"; return; }
+
+  document.getElementById("empName").textContent = emp.name;
+  document.getElementById("empNationalId").textContent = emp.national_id;
+  document.getElementById("empDepartment").textContent = emp.department || "-";
+  document.getElementById("empPosition").textContent = emp.position || "-";
+  document.getElementById("empEmail").textContent = emp.email || "-";
+}
+
+async function submitRequest(type){
+
+  const emp = await getEmployee();
+  if(!emp) return;
+
+  let details="";
+
+  if(type==="leave"){
+    details=`من ${leaveStart.value} إلى ${leaveEnd.value} - ${leaveReason.value}`;
+  }
+  if(type==="loan"){
+    details=`المبلغ: ${loanAmount.value} - ${loanReason.value}`;
+  }
+  if(type==="complaint"){
+    details=complaintText.value;
+  }
+  if(type==="promotion"){
+    details=`${promotionTitle.value} - ${promotionReason.value}`;
   }
 
-  const response = await fetch(API_BASE + "/employees");
-  const employees = await response.json();
+  await fetch(API_BASE+"/requests",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      employee_id:emp.id,
+      type:type,
+      details:details
+    })
+  });
 
-  const employee = employees.find(
-    e => e.name === name && e.national_id === nationalId
-  );
+  loadRequests();
+}
 
-  if (!employee) {
-    window.location.href = "/";
-    return;
+async function loadRequests(){
+  const emp = await getEmployee();
+  if(!emp) return;
+
+  const res = await fetch(API_BASE+"/requests/"+emp.id);
+  const data = await res.json();
+
+  const table = document.getElementById("requestsTable");
+  table.innerHTML="";
+
+  data.forEach(r=>{
+    table.innerHTML += `
+      <tr>
+        <td>${r.type}</td>
+        <td>${new Date(r.created_at).toLocaleDateString()}</td>
+        <td>${r.status}</td>
+        <td>${r.admin_reply || "-"}</td>
+      </tr>
+    `;
+  });
+}
+
+async function uploadFile(){
+  const emp = await getEmployee();
+  if(!emp) return;
+
+  const file = fileUpload.files[0];
+  if(!file) return;
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("employee_id", emp.id);
+
+  await fetch("/upload-file",{
+    method:"POST",
+    body:formData
+  });
+
+  alert("✅ تم رفع الملف");
+}
+
+function logout(){
+  sessionStorage.clear();
+  window.location.href="/";
+}
+
+loadEmployee();
+loadRequests();
+</script>
+
+</body>
+</html>
