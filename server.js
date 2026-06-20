@@ -2,7 +2,6 @@ const express = require("express");
 const { Pool } = require("pg");
 const cors = require("cors");
 const multer = require("multer");
-const path = require("path");
 const fs = require("fs");
 require("dotenv").config();
 
@@ -22,13 +21,9 @@ if (!fs.existsSync("uploads")) {
 }
 
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    const uniqueName = Date.now() + "-" + file.originalname;
-    cb(null, uniqueName);
-  },
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + "-" + file.originalname),
 });
 
 const upload = multer({ storage });
@@ -43,7 +38,6 @@ const pool = new Pool({
 });
 
 async function initDB() {
-
   await pool.query(`
     CREATE TABLE IF NOT EXISTS employees (
       id SERIAL PRIMARY KEY,
@@ -52,6 +46,8 @@ async function initDB() {
       email TEXT,
       position TEXT,
       department TEXT,
+      salary NUMERIC,
+      status TEXT DEFAULT 'active',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -101,15 +97,40 @@ app.get("/employees", async (req, res) => {
 });
 
 app.post("/employees", async (req, res) => {
-  const { name, national_id, email, position, department } = req.body;
+  const { name, national_id, email, position, department, salary } = req.body;
 
   const result = await pool.query(
-    "INSERT INTO employees (name, national_id, email, position, department) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-    [name, national_id, email || null, position || null, department || null]
+    `INSERT INTO employees 
+    (name, national_id, email, position, department, salary) 
+    VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [name, national_id, email || null, position || null, department || null, salary || null]
   );
 
   res.json(result.rows[0]);
 });
+
+app.put("/employees/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, department, position, salary, status } = req.body;
+
+  await pool.query(
+    `UPDATE employees 
+     SET name=$1, department=$2, position=$3, salary=$4, status=$5
+     WHERE id=$6`,
+    [name, department, position, salary, status, id]
+  );
+
+  res.json({ message: "Employee updated" });
+});
+
+app.delete("/employees/:id", async (req, res) => {
+  await pool.query("DELETE FROM employees WHERE id=$1", [req.params.id]);
+  res.json({ message: "Employee deleted" });
+});
+
+/* =============================
+   تسجيل الدخول
+============================= */
 
 app.post("/login", async (req, res) => {
   const { name, national_id } = req.body;
@@ -134,73 +155,16 @@ app.post("/requests", async (req, res) => {
   const { employee_id, type, details } = req.body;
 
   await pool.query(
-    "INSERT INTO requests (employee_id, type, details) VALUES ($1,$2,$3)",
+    "INSERT INTO requests (employee_id,type,details) VALUES ($1,$2,$3)",
     [employee_id, type, details]
   );
 
   res.json({ message: "Request submitted" });
 });
 
-app.get("/requests/:employeeId", async (req, res) => {
-  const { employeeId } = req.params;
-
-  const result = await pool.query(
-    "SELECT * FROM requests WHERE employee_id=$1 ORDER BY id DESC",
-    [employeeId]
-  );
-
-  res.json(result.rows);
-});
-
-/* =============================
-   رفع ملفات PDF
-============================= */
-
-app.post("/upload-file", upload.single("file"), async (req, res) => {
-
-  const { employee_id } = req.body;
-
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
-  }
-
-  await pool.query(
-    "INSERT INTO files (employee_id, file_name, file_path) VALUES ($1,$2,$3)",
-    [employee_id, req.file.originalname, req.file.filename]
-  );
-
-  res.json({ message: "File uploaded successfully" });
-});
-
-/* =============================
-   إعدادات الشركة
-============================= */
-
-app.post("/company-logo", upload.single("logo"), async (req, res) => {
-
-  if (!req.file) {
-    return res.status(400).json({ message: "No logo uploaded" });
-  }
-
-  await pool.query(
-    "UPDATE company_settings SET logo_path=$1 WHERE id=1",
-    [req.file.filename]
-  );
-
-  res.json({ message: "Logo updated" });
-});
-
-app.get("/company-settings", async (req, res) => {
-  const result = await pool.query("SELECT * FROM company_settings LIMIT 1");
-  res.json(result.rows[0] || {});
-});
-
-/* =============================
-   تشغيل السيرفر
-============================= */
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.get("/requests", async (req, res) => {
+  const result = await pool.query(`
+    SELECT requests.*, employees.name 
+    FROM requests 
+    JOIN employees ON requests.employee_id = employees.id
+    ORDER BY requests.id DESC
