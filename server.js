@@ -17,15 +17,11 @@ const pool = new Pool({
   },
 });
 
-// ✅ إعادة إنشاء جدول الموظفين (تنظيف كامل)
+// ✅ إنشاء جدول الموظفين إذا لم يكن موجود
 async function initDB() {
 
-  // حذف الجدول القديم بالكامل
-  await pool.query(`DROP TABLE IF EXISTS employees;`);
-
-  // إنشاء جدول جديد نظيف
   await pool.query(`
-    CREATE TABLE employees (
+    CREATE TABLE IF NOT EXISTS employees (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       national_id TEXT NOT NULL,
@@ -36,7 +32,7 @@ async function initDB() {
     )
   `);
 
-  console.log("✅ Employees table recreated successfully");
+  console.log("✅ Employees table ready");
 }
 
 initDB();
@@ -57,7 +53,7 @@ app.post("/employees", async (req, res) => {
 
   const result = await pool.query(
     "INSERT INTO employees (name, national_id, email, position, department) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-    [name, national_id, email || null, position || null, department || null]
+    [name.trim(), national_id.trim(), email || null, position || null, department || null]
   );
 
   res.json(result.rows[0]);
@@ -72,8 +68,8 @@ app.post("/login", async (req, res) => {
   }
 
   const result = await pool.query(
-    "SELECT * FROM employees WHERE name = $1 AND national_id = $2",
-    [name, national_id]
+    "SELECT * FROM employees WHERE TRIM(name) = TRIM($1) AND national_id = $2",
+    [name.trim(), national_id.trim()]
   );
 
   if (result.rows.length > 0) {
@@ -93,7 +89,7 @@ app.get("/add-employee", async (req, res) => {
 
   await pool.query(
     "INSERT INTO employees (name, national_id) VALUES ($1,$2)",
-    [name, national_id]
+    [name.trim(), national_id.trim()]
   );
 
   res.send("✅ تم إضافة الموظف بنجاح");
