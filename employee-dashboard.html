@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الموظف</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+body{
+  font-family:'Cairo',sans-serif;
+  margin:0;
+  background:#eef4ff;
+}
+.topbar{
+  background:#0f172a;
+  color:#fff;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.container{
+  max-width:1000px;
+  margin:30px auto;
+  padding:20px;
+}
+.card{
+  background:#fff;
+  padding:20px;
+  border-radius:15px;
+  margin-bottom:20px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.08);
+}
+h2{margin-top:0;}
+.row{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+.label{font-weight:bold;color:#555;}
+.value{font-weight:bold;}
+button{
+  padding:10px 15px;
+  border:none;
+  border-radius:8px;
+  background:#0f172a;
+  color:#fff;
+  cursor:pointer;
+}
+button:hover{opacity:.9;}
+input, textarea{
+  width:100%;
+  padding:10px;
+  margin:5px 0 10px 0;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-family:'Cairo',sans-serif;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>لوحة الموظف</div>
+  <button id="logoutBtn">تسجيل الخروج</button>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <h2>معلومات الموظف</h2>
+    <div class="row"><span class="label">الاسم:</span><span id="empName" class="value"></span></div>
+    <div class="row"><span class="label">رقم الهوية:</span><span id="empNationalId" class="value"></span></div>
+    <div class="row"><span class="label">القسم:</span><span id="empDepartment" class="value"></span></div>
+    <div class="row"><span class="label">المسمى الوظيفي:</span><span id="empPosition" class="value"></span></div>
+    <div class="row"><span class="label">البريد:</span><span id="empEmail" class="value"></span></div>
+  </div>
+
+  <div class="card">
+    <h2>طلب إجازة</h2>
+    <input id="leaveStart" type="date">
+    <input id="leaveEnd" type="date">
+    <textarea id="leaveReason" placeholder="سبب الإجازة"></textarea>
+    <button>إرسال الطلب</button>
+  </div>
+
+  <div class="card">
+    <h2>طلب سلفة</h2>
+    <input id="loanAmount" type="number" placeholder="المبلغ">
+    <textarea id="loanReason" placeholder="سبب السلفة"></textarea>
+    <button>إرسال الطلب</button>
+  </div>
+
+</div>
+
+<script>
+const API_BASE = "https://daring-trust-production-8c34.up.railway.app";
+
+async function loadEmployee() {
+
+  const name = sessionStorage.getItem("empName");
+  const nationalId = sessionStorage.getItem("empNationalId");
+
+  if (!name || !nationalId) {
+    window.location.href = "/";
+    return;
+  }
+
+  const response = await fetch(API_BASE + "/employees");
+  const employees = await response.json();
+
+  const employee = employees.find(
+    e => e.name === name && e.national_id === nationalId
+  );
+
+  if (!employee) {
+    window.location.href = "/";
+    return;
+  }
+
+  document.getElementById("empName").textContent = employee.name;
+  document.getElementById("empNationalId").textContent = employee.national_id;
+  document.getElementById("empDepartment").textContent = employee.department || "-";
+  document.getElementById("empPosition").textContent = employee.position || "-";
+  document.getElementById("empEmail").textContent = employee.email || "-";
+}
+
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  sessionStorage.clear();
+  window.location.href = "/";
+});
+
+loadEmployee();
+</script>
+
+</body>
+</html>
