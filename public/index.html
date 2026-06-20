@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>شركة لانا الطبية | تسجيل الدخول</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
   <style>
     body{
@@ -19,7 +18,7 @@
     .card{
       background:#fff;
       padding:30px;
-      width:340px;
+      width:360px;
       border-radius:20px;
       box-shadow:0 20px 40px rgba(0,0,0,0.1);
       text-align:center;
@@ -30,7 +29,6 @@
       margin:10px 0;
       border-radius:10px;
       border:1px solid #ccc;
-      font-family:'Cairo',sans-serif;
     }
     button{
       width:100%;
@@ -80,6 +78,7 @@
 const API_BASE = "https://daring-trust-production-8c34.up.railway.app";
 
 async function login() {
+
   const msg = document.getElementById("msg");
   msg.innerHTML = "";
 
@@ -87,7 +86,7 @@ async function login() {
   const national_id = document.getElementById("employeeNationalId").value.trim();
   const adminPassword = document.getElementById("adminPassword").value.trim();
 
-  // ✅ دخول موظف
+  // ✅ تسجيل دخول موظف
   if (name && national_id) {
     try {
       const response = await fetch(API_BASE + "/login", {
@@ -96,18 +95,24 @@ async function login() {
         body: JSON.stringify({ name, national_id })
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        msg.style.color = "green";
-        msg.innerHTML = "✅ تم تسجيل الدخول بنجاح";
-        setTimeout(()=>{
-          window.location.href = "/employee-dashboard.html";
-        },1000);
-      } else {
+      if (!response.ok) {
         msg.style.color = "red";
         msg.innerHTML = "❌ الاسم أو رقم الهوية غير صحيح";
+        return;
       }
+
+      const data = await response.json();
+
+      // ✅ حفظ الجلسة
+      sessionStorage.setItem("empName", data.employee.name);
+      sessionStorage.setItem("empNationalId", data.employee.national_id);
+
+      msg.style.color = "green";
+      msg.innerHTML = "✅ تم تسجيل الدخول بنجاح";
+
+      setTimeout(() => {
+        window.location.href = "/employee-dashboard.html";
+      }, 800);
 
     } catch (error) {
       msg.style.color = "red";
@@ -117,7 +122,7 @@ async function login() {
     return;
   }
 
-  // ✅ دخول مسؤول (مؤقت حتى نبنيه احترافي)
+  // ✅ تسجيل دخول مسؤول (مؤقت)
   if (adminPassword) {
     if (adminPassword === "admin123") {
       window.location.href = "/admin-dashboard.html";
