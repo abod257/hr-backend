@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لوحة الموظف</title>
+<title>شركة لانا الطبية | لوحة الموظف</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
 
@@ -39,8 +39,8 @@ body{
   background:#fff;
   color:var(--primary);
   padding:8px 14px;
-  border-radius:12px;
   border:none;
+  border-radius:12px;
   font-weight:700;
   cursor:pointer;
 }
@@ -119,11 +119,10 @@ th,td{
   border-bottom:1px solid var(--line);
   text-align:right;
 }
-th{
-  background:#f8fafc;
-}
+th{background:#f8fafc}
 </style>
 </head>
+
 <body>
 
 <div class="topbar">
@@ -135,12 +134,11 @@ th{
 
 <div class="hero">
   <h1>مرحباً بك 👋</h1>
-  <p>لوحة الموظف الرسمية</p>
+  <p>لوحة الموظف الرسمية المرتبطة بقاعدة البيانات</p>
 </div>
 
 <div class="grid grid-2">
 
-<!-- معلومات الموظف -->
 <div class="card">
 <h3>معلومات الموظف</h3>
 <div class="info-row"><span class="label">الاسم</span><span id="empName" class="value"></span></div>
@@ -150,7 +148,6 @@ th{
 <div class="info-row"><span class="label">البريد</span><span id="empEmail" class="value"></span></div>
 </div>
 
-<!-- طلب إجازة -->
 <div class="card">
 <h3>طلب إجازة</h3>
 <input id="leaveStart" type="date">
@@ -159,7 +156,6 @@ th{
 <button class="submit-btn" onclick="submitRequest('leave')">إرسال</button>
 </div>
 
-<!-- طلب سلفة -->
 <div class="card">
 <h3>طلب سلفة</h3>
 <input id="loanAmount" type="number" placeholder="المبلغ">
@@ -167,14 +163,12 @@ th{
 <button class="submit-btn" onclick="submitRequest('loan')">إرسال</button>
 </div>
 
-<!-- شكوى -->
 <div class="card">
 <h3>شكوى</h3>
 <textarea id="complaintText" placeholder="اكتب الشكوى"></textarea>
 <button class="submit-btn" onclick="submitRequest('complaint')">إرسال</button>
 </div>
 
-<!-- طلب ترقية -->
 <div class="card">
 <h3>طلب ترقية</h3>
 <input id="promotionTitle" type="text" placeholder="المسمى المطلوب">
@@ -182,14 +176,12 @@ th{
 <button class="submit-btn" onclick="submitRequest('promotion')">إرسال</button>
 </div>
 
-<!-- رفع ملف -->
 <div class="card">
 <h3>رفع ملف PDF</h3>
 <input type="file" id="fileUpload" accept="application/pdf">
 <button class="submit-btn" onclick="uploadFile()">رفع</button>
 </div>
 
-<!-- سجل الطلبات -->
 <div class="card">
 <h3>سجل الطلبات</h3>
 <table>
@@ -210,55 +202,64 @@ th{
 
 <script>
 const API_BASE = "https://daring-trust-production-8c34.up.railway.app";
+let currentEmployee = null;
 
-async function getEmployee(){
+async function init() {
   const name = sessionStorage.getItem("empName");
   const nationalId = sessionStorage.getItem("empNationalId");
+
+  if (!name || !nationalId) {
+    window.location.href = "/";
+    return;
+  }
 
   const res = await fetch(API_BASE + "/employees");
   const employees = await res.json();
 
-  return employees.find(e => e.name === name && e.national_id === nationalId);
+  currentEmployee = employees.find(
+    e => e.name === name && e.national_id === nationalId
+  );
+
+  if (!currentEmployee) {
+    window.location.href = "/";
+    return;
+  }
+
+  renderEmployee();
+  loadRequests();
 }
 
-async function loadEmployee(){
-  const emp = await getEmployee();
-  if(!emp){ window.location.href="/"; return; }
-
-  document.getElementById("empName").textContent = emp.name;
-  document.getElementById("empNationalId").textContent = emp.national_id;
-  document.getElementById("empDepartment").textContent = emp.department || "-";
-  document.getElementById("empPosition").textContent = emp.position || "-";
-  document.getElementById("empEmail").textContent = emp.email || "-";
+function renderEmployee(){
+  document.getElementById("empName").textContent = currentEmployee.name;
+  document.getElementById("empNationalId").textContent = currentEmployee.national_id;
+  document.getElementById("empDepartment").textContent = currentEmployee.department || "-";
+  document.getElementById("empPosition").textContent = currentEmployee.position || "-";
+  document.getElementById("empEmail").textContent = currentEmployee.email || "-";
 }
 
 async function submitRequest(type){
-
-  const emp = await getEmployee();
-  if(!emp) return;
-
-  let details="";
+  let details = "";
 
   if(type==="leave"){
-    details=`من ${leaveStart.value} إلى ${leaveEnd.value} - ${leaveReason.value}`;
+    details = `من ${leaveStart.value} إلى ${leaveEnd.value} - ${leaveReason.value}`;
   }
   if(type==="loan"){
-    details=`المبلغ: ${loanAmount.value} - ${loanReason.value}`;
+    details = `المبلغ ${loanAmount.value} - ${loanReason.value}`;
   }
   if(type==="complaint"){
-    details=complaintText.value;
+    details = complaintText.value;
   }
   if(type==="promotion"){
-    details=`${promotionTitle.value} - ${promotionReason.value}`;
+    details = `${promotionTitle.value} - ${promotionReason.value}`;
   }
 
   await fetch(API_BASE+"/requests",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
-      employee_id:emp.id,
-      type:type,
-      details:details
+      employee_id:currentEmployee.id,
+      type,
+      details
     })
   });
 
@@ -266,10 +267,7 @@ async function submitRequest(type){
 }
 
 async function loadRequests(){
-  const emp = await getEmployee();
-  if(!emp) return;
-
-  const res = await fetch(API_BASE+"/requests/"+emp.id);
+  const res = await fetch(API_BASE+"/requests/"+currentEmployee.id);
   const data = await res.json();
 
   const table = document.getElementById("requestsTable");
@@ -288,21 +286,14 @@ async function loadRequests(){
 }
 
 async function uploadFile(){
-  const emp = await getEmployee();
-  if(!emp) return;
-
   const file = fileUpload.files[0];
   if(!file) return;
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("employee_id", emp.id);
+  formData.append("employee_id", currentEmployee.id);
 
-  await fetch("/upload-file",{
-    method:"POST",
-    body:formData
-  });
-
+  await fetch("/upload-file",{method:"POST",body:formData});
   alert("✅ تم رفع الملف");
 }
 
@@ -311,89 +302,7 @@ function logout(){
   window.location.href="/";
 }
 
-loadEmployee();
-loadRequests();
-<script>
-const API = "https://daring-trust-production-8c34.up.railway.app";
-
-async function loadEmployees() {
-  const res = await fetch(API + "/employees");
-  const data = await res.json();
-  const tbody = document.getElementById("employeesTableBody");
-  tbody.innerHTML = "";
-
-  data.forEach(emp => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${emp.name}</td>
-        <td>${emp.national_id}</td>
-        <td>${emp.department || "-"}</td>
-        <td>${emp.position || "-"}</td>
-        <td>${emp.salary || "-"}</td>
-        <td>${emp.status}</td>
-        <td>
-          <button onclick="deleteEmployee(${emp.id})">حذف</button>
-        </td>
-      </tr>
-    `;
-  });
-}
-
-async function deleteEmployee(id) {
-  await fetch(API + "/employees/" + id, { method: "DELETE" });
-  loadEmployees();
-}
-
-async function loadRequests() {
-  const res = await fetch(API + "/requests");
-  const data = await res.json();
-  const tbody = document.getElementById("requestsTableBody");
-  tbody.innerHTML = "";
-
-  data.forEach(r => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${r.name}</td>
-        <td>${r.type}</td>
-        <td>${r.details}</td>
-        <td>${r.status}</td>
-        <td>
-          <button onclick="updateRequest(${r.id},'approved')">اعتماد</button>
-          <button onclick="updateRequest(${r.id},'rejected')">رفض</button>
-        </td>
-      </tr>
-    `;
-  });
-}
-
-async function updateRequest(id,status){
-  await fetch(API + "/requests/" + id,{
-    method:"PUT",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({status})
-  });
-  loadRequests();
-}
-
-async function loadFiles(){
-  const res = await fetch(API + "/files");
-  const data = await res.json();
-  const tbody = document.getElementById("filesTableBody");
-  tbody.innerHTML="";
-
-  data.forEach(f=>{
-    tbody.innerHTML+=`
-      <tr>
-        <td>${f.name}</td>
-        <td><a href="/uploads/${f.file_path}" target="_blank">${f.file_name}</a></td>
-      </tr>
-    `;
-  });
-}
-
-loadEmployees();
-loadRequests();
-loadFiles();
+init();
 </script>
 
 </body>
