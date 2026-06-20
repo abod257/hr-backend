@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>بوابة الموظفين - شركة لانا الطبية</title>
+<style>
+body{
+  font-family: Arial;
+  background:#f4f6f9;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.card{
+  background:#fff;
+  padding:30px;
+  width:320px;
+  border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+}
+input{
+  width:100%;
+  padding:10px;
+  margin:10px 0;
+}
+button{
+  width:100%;
+  padding:10px;
+  background:#0f172a;
+  color:#fff;
+  border:none;
+}
+.message{
+  margin-top:10px;
+  text-align:center;
+}
+.hidden{display:none;}
+</style>
+</head>
+<body>
+
+<div class="card" id="loginCard">
+  <h3>تسجيل دخول الموظفين</h3>
+
+  <input id="name" placeholder="الاسم الكامل">
+  <input id="national_id" placeholder="رقم الهوية">
+
+  <button onclick="login()">دخول</button>
+  <div class="message" id="msg"></div>
+</div>
+
+<div class="card hidden" id="dashboard">
+  <h3 id="welcome"></h3>
+  <p>مرحباً بك في لوحة الموظف الرسمية.</p>
+  <button onclick="logout()">تسجيل خروج</button>
+</div>
+
+<script>
+const API = "https://daring-trust-production-8c34.up.railway.app";
+
+async function login(){
+  const name = document.getElementById("name").value.trim();
+  const national_id = document.getElementById("national_id").value.trim();
+  const msg = document.getElementById("msg");
+
+  if(!name || !national_id){
+    msg.innerHTML = "<span style='color:red'>أدخل جميع البيانات</span>";
+    return;
+  }
+
+  try{
+    const res = await fetch(API + "/login", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ name, national_id })
+    });
+
+    const data = await res.json();
+
+    if(data.success){
+      document.getElementById("loginCard").classList.add("hidden");
+      document.getElementById("dashboard").classList.remove("hidden");
+      document.getElementById("welcome").innerText =
+        "مرحباً " + data.employee.name;
+    }else{
+      msg.innerHTML = "<span style='color:red'>البيانات غير صحيحة</span>";
+    }
+
+  }catch(e){
+    msg.innerHTML = "<span style='color:red'>خطأ في الاتصال بالخادم</span>";
+  }
+}
+
+function logout(){
+  document.getElementById("dashboard").classList.add("hidden");
+  document.getElementById("loginCard").classList.remove("hidden");
+}
+</script>
+
+</body>
+</html>
