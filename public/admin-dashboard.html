@@ -10,18 +10,19 @@
 <style>
 :root{
   --primary:#0f172a;
-  --bg1:#eef4ff;
-  --bg2:#dff1ff;
+  --accent:#20c86f;
+  --bg:#f1f5f9;
   --card:#ffffff;
+  --muted:#64748b;
   --line:#e2e8f0;
-  --shadow:0 30px 70px rgba(15,23,42,.15);
+  --shadow:0 25px 60px rgba(15,23,42,.12);
 }
 
 *{box-sizing:border-box}
 body{
   margin:0;
   font-family:'Cairo',sans-serif;
-  background:linear-gradient(135deg,var(--bg1),var(--bg2));
+  background:var(--bg);
 }
 
 .topbar{
@@ -36,7 +37,7 @@ body{
 .logout-btn{
   background:#fff;
   color:var(--primary);
-  padding:8px 14px;
+  padding:8px 16px;
   border:none;
   border-radius:12px;
   font-weight:700;
@@ -45,40 +46,69 @@ body{
 
 .container{
   max-width:1400px;
-  margin:40px auto;
+  margin:30px auto;
   padding:0 20px;
 }
 
-.hero{
-  background:linear-gradient(135deg,#0f172a,#134e4a);
-  color:#fff;
-  padding:30px;
-  border-radius:24px;
-  margin-bottom:30px;
+.tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
 }
 
-.grid{
-  display:grid;
-  gap:24px;
+.tab{
+  padding:10px 16px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:#fff;
+  cursor:pointer;
+  font-weight:700;
+}
+
+.tab.active{
+  background:var(--primary);
+  color:#fff;
+}
+
+.section{
+  display:none;
+}
+
+.section.active{
+  display:block;
 }
 
 .card{
   background:var(--card);
   padding:25px;
-  border-radius:24px;
+  border-radius:20px;
   box-shadow:var(--shadow);
+  margin-bottom:20px;
 }
 
 table{
   width:100%;
   border-collapse:collapse;
 }
+
 th,td{
   padding:12px;
   border-bottom:1px solid var(--line);
   text-align:right;
 }
-th{background:#f8fafc}
+
+th{
+  background:#f8fafc;
+}
+
+input,select,textarea{
+  width:100%;
+  padding:10px;
+  margin:8px 0;
+  border-radius:10px;
+  border:1px solid var(--line);
+}
 
 button{
   padding:6px 12px;
@@ -87,19 +117,16 @@ button{
   cursor:pointer;
 }
 
+.btn-delete{background:#dc2626;color:#fff}
 .btn-approve{background:#16a34a;color:#fff}
-.btn-reject{background:#dc2626;color:#fff}
-.btn-delete{background:#991b1b;color:#fff}
+.btn-reject{background:#991b1b;color:#fff}
 
-textarea{
-  width:100%;
-  padding:8px;
-  border-radius:8px;
-  border:1px solid #ccc;
+.search-box{
+  margin-bottom:15px;
 }
+
 </style>
 </head>
-
 <body>
 
 <div class="topbar">
@@ -109,59 +136,80 @@ textarea{
 
 <div class="container">
 
-<div class="hero">
-  <h1>إدارة النظام</h1>
+<div class="tabs">
+  <div class="tab active" onclick="showTab('employees')">الموظفون</div>
+  <div class="tab" onclick="showTab('requests')">الطلبات</div>
+  <div class="tab" onclick="showTab('files')">الملفات</div>
+  <div class="tab" onclick="showTab('settings')">الإعدادات</div>
 </div>
 
-<!-- الموظفين -->
-<div class="card">
-<h3>جميع الموظفين</h3>
-<table>
-<thead>
-<tr>
-<th>الاسم</th>
-<th>رقم الهوية</th>
-<th>القسم</th>
-<th>المسمى</th>
-<th>الراتب</th>
-<th>الحالة</th>
-<th>حذف</th>
-</tr>
-</thead>
-<tbody id="employeesTable"></tbody>
-</table>
+<!-- الموظفون -->
+<div id="employees" class="section active">
+  <div class="card">
+    <h3>جميع الموظفين</h3>
+
+    <input id="employeeSearch" class="search-box" placeholder="بحث بالاسم أو الهوية" onkeyup="filterEmployees()">
+
+    <table>
+      <thead>
+        <tr>
+          <th>الاسم</th>
+          <th>رقم الهوية</th>
+          <th>القسم</th>
+          <th>المسمى</th>
+          <th>الراتب</th>
+          <th>الحالة</th>
+          <th>إجراء</th>
+        </tr>
+      </thead>
+      <tbody id="employeesTable"></tbody>
+    </table>
+  </div>
 </div>
 
 <!-- الطلبات -->
-<div class="card">
-<h3>جميع الطلبات</h3>
-<table>
-<thead>
-<tr>
-<th>الموظف</th>
-<th>النوع</th>
-<th>التفاصيل</th>
-<th>الحالة</th>
-<th>رد الإدارة</th>
-<th>إجراء</th>
-</tr>
-</thead>
-<tbody id="requestsTable"></tbody>
-</table>
+<div id="requests" class="section">
+  <div class="card">
+    <h3>جميع الطلبات</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>الموظف</th>
+          <th>النوع</th>
+          <th>التفاصيل</th>
+          <th>الحالة</th>
+          <th>رد الإدارة</th>
+          <th>إجراء</th>
+        </tr>
+      </thead>
+      <tbody id="requestsTable"></tbody>
+    </table>
+  </div>
 </div>
 
 <!-- الملفات -->
-<div class="card">
-<h3>الملفات المرفوعة</h3>
-<table>
-<thead>
-<tr>
-<th>الموظف</th>
-<th>الملف</th>
-</tr>
-</thead>
-<tbody id="filesTable"></tbody>
-</table>
+<div id="files" class="section">
+  <div class="card">
+    <h3>الملفات المرفوعة</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>الموظف</th>
+          <th>الملف</th>
+        </tr>
+      </thead>
+      <tbody id="filesTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- الإعدادات -->
+<div id="settings" class="section">
+  <div class="card">
+    <h3>إعدادات الشركة</h3>
+    <input type="file" id="logoInput">
+    <button onclick="uploadLogo()">رفع الشعار</button>
+  </div>
 </div>
 
 </div>
@@ -169,14 +217,25 @@ textarea{
 <script>
 const API = "https://daring-trust-production-8c34.up.railway.app";
 
-/* ============================= */
-/* تحميل الموظفين */
+function showTab(id){
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  event.target.classList.add("active");
+}
+
+/* ================= EMPLOYEES ================= */
+let employeesData = [];
+
 async function loadEmployees(){
   const res = await fetch(API + "/employees");
-  const data = await res.json();
+  employeesData = await res.json();
+  renderEmployees(employeesData);
+}
+
+function renderEmployees(data){
   const table = document.getElementById("employeesTable");
   table.innerHTML="";
-
   data.forEach(emp=>{
     table.innerHTML += `
       <tr>
@@ -194,20 +253,27 @@ async function loadEmployees(){
   });
 }
 
-/* حذف موظف */
+function filterEmployees(){
+  const value = document.getElementById("employeeSearch").value.toLowerCase();
+  const filtered = employeesData.filter(emp =>
+    emp.name.toLowerCase().includes(value) ||
+    emp.national_id.includes(value)
+  );
+  renderEmployees(filtered);
+}
+
 async function deleteEmployee(id){
   await fetch(API + "/employees/" + id, {method:"DELETE"});
   loadEmployees();
 }
 
-/* ============================= */
-/* تحميل الطلبات */
+/* ================= REQUESTS ================= */
+
 async function loadRequests(){
   const res = await fetch(API + "/requests");
   const data = await res.json();
   const table = document.getElementById("requestsTable");
   table.innerHTML="";
-
   data.forEach(r=>{
     table.innerHTML += `
       <tr>
@@ -215,9 +281,7 @@ async function loadRequests(){
         <td>${r.type}</td>
         <td>${r.details}</td>
         <td>${r.status}</td>
-        <td>
-          <textarea id="reply_${r.id}">${r.admin_reply || ""}</textarea>
-        </td>
+        <td><textarea id="reply_${r.id}">${r.admin_reply || ""}</textarea></td>
         <td>
           <button class="btn-approve" onclick="updateRequest(${r.id},'approved')">اعتماد</button>
           <button class="btn-reject" onclick="updateRequest(${r.id},'rejected')">رفض</button>
@@ -229,24 +293,21 @@ async function loadRequests(){
 
 async function updateRequest(id,status){
   const reply = document.getElementById("reply_"+id).value;
-
   await fetch(API + "/requests/" + id,{
     method:"PUT",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({status,admin_reply:reply})
   });
-
   loadRequests();
 }
 
-/* ============================= */
-/* تحميل الملفات */
+/* ================= FILES ================= */
+
 async function loadFiles(){
   const res = await fetch(API + "/files");
   const data = await res.json();
   const table = document.getElementById("filesTable");
   table.innerHTML="";
-
   data.forEach(f=>{
     table.innerHTML += `
       <tr>
@@ -255,6 +316,23 @@ async function loadFiles(){
       </tr>
     `;
   });
+}
+
+/* ================= SETTINGS ================= */
+
+async function uploadLogo(){
+  const file = logoInput.files[0];
+  if(!file) return;
+
+  const formData = new FormData();
+  formData.append("logo", file);
+
+  await fetch("/company-logo",{
+    method:"POST",
+    body:formData
+  });
+
+  alert("✅ تم تحديث الشعار");
 }
 
 function logout(){
