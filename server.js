@@ -101,8 +101,8 @@ app.post("/employees", async (req, res) => {
 
   const result = await pool.query(
     `INSERT INTO employees 
-    (name, national_id, email, position, department, salary) 
-    VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+     (name, national_id, email, position, department, salary) 
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
     [name, national_id, email || null, position || null, department || null, salary || null]
   );
 
@@ -168,3 +168,73 @@ app.get("/requests", async (req, res) => {
     FROM requests 
     JOIN employees ON requests.employee_id = employees.id
     ORDER BY requests.id DESC
+  `);
+
+  res.json(result.rows);
+});
+
+app.get("/requests/:employeeId", async (req, res) => {
+  const result = await pool.query(
+    "SELECT * FROM requests WHERE employee_id=$1 ORDER BY id DESC",
+    [req.params.employeeId]
+  );
+  res.json(result.rows);
+});
+
+app.put("/requests/:id", async (req, res) => {
+  const { status, admin_reply } = req.body;
+
+  await pool.query(
+    "UPDATE requests SET status=$1, admin_reply=$2 WHERE id=$3",
+    [status, admin_reply, req.params.id]
+  );
+
+  res.json({ message: "Request updated" });
+});
+
+/* =============================
+   الملفات
+============================= */
+
+app.post("/upload-file", upload.single("file"), async (req, res) => {
+  await pool.query(
+    "INSERT INTO files (employee_id,file_name,file_path) VALUES ($1,$2,$3)",
+    [req.body.employee_id, req.file.originalname, req.file.filename]
+  );
+  res.json({ message: "File uploaded" });
+});
+
+app.get("/files", async (req, res) => {
+  const result = await pool.query(`
+    SELECT files.*, employees.name 
+    FROM files 
+    JOIN employees ON files.employee_id = employees.id
+    ORDER BY files.id DESC
+  `);
+  res.json(result.rows);
+});
+
+/* =============================
+   إعدادات الشركة
+============================= */
+
+app.post("/company-logo", upload.single("logo"), async (req, res) => {
+  await pool.query(
+    "UPDATE company_settings SET logo_path=$1 WHERE id=1",
+    [req.file.filename]
+  );
+  res.json({ message: "Logo updated" });
+});
+
+app.get("/company-settings", async (req, res) => {
+  const result = await pool.query("SELECT * FROM company_settings LIMIT 1");
+  res.json(result.rows[0] || {});
+});
+
+/* ============================= */
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on ${PORT}`);
+});
