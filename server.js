@@ -17,19 +17,37 @@ const pool = new Pool({
   },
 });
 
-// ✅ إنشاء جدول الموظفين إذا لم يكن موجود
+// ✅ إنشاء جدول الموظفين وتصحيح الأعمدة إن لزم
 async function initDB() {
+
+  // إنشاء الجدول إذا لم يكن موجود
   await pool.query(`
     CREATE TABLE IF NOT EXISTS employees (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
-      national_id TEXT NOT NULL,
+      national_id TEXT,
       email TEXT,
       position TEXT,
       department TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // ✅ إذا الجدول قديم ولا يحتوي national_id أضفه
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'employees'
+        AND column_name = 'national_id'
+      ) THEN
+        ALTER TABLE employees ADD COLUMN national_id TEXT;
+      END IF;
+    END
+    $$;
+  `);
+
   console.log("✅ Employees table ready");
 }
 
@@ -61,6 +79,10 @@ app.post("/employees", async (req, res) => {
 app.post("/login", async (req, res) => {
   const { name, national_id } = req.body;
 
+  if (!name || !national_id) {
+    return res.status(400).json({ success: false });
+  }
+
   const result = await pool.query(
     "SELECT * FROM employees WHERE name = $1 AND national_id = $2",
     [name, national_id]
@@ -73,7 +95,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// ✅ إضافة موظف سريع من المتصفح (مؤقت)
+// ✅ إضافة موظف سريع من المتصفح (مؤقت للاختبار)
 app.get("/add-employee", async (req, res) => {
   const { name, national_id } = req.query;
 
