@@ -17,15 +17,18 @@ const pool = new Pool({
   },
 });
 
-// ✅ إنشاء جدول الموظفين وتصحيح الأعمدة إن لزم
+// ✅ إعادة إنشاء جدول الموظفين (تنظيف كامل)
 async function initDB() {
 
-  // إنشاء الجدول إذا لم يكن موجود
+  // حذف الجدول القديم بالكامل
+  await pool.query(`DROP TABLE IF EXISTS employees;`);
+
+  // إنشاء جدول جديد نظيف
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS employees (
+    CREATE TABLE employees (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
-      national_id TEXT,
+      national_id TEXT NOT NULL,
       email TEXT,
       position TEXT,
       department TEXT,
@@ -33,22 +36,7 @@ async function initDB() {
     )
   `);
 
-  // ✅ إذا الجدول قديم ولا يحتوي national_id أضفه
-  await pool.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'employees'
-        AND column_name = 'national_id'
-      ) THEN
-        ALTER TABLE employees ADD COLUMN national_id TEXT;
-      END IF;
-    END
-    $$;
-  `);
-
-  console.log("✅ Employees table ready");
+  console.log("✅ Employees table recreated successfully");
 }
 
 initDB();
