@@ -313,6 +313,87 @@ function logout(){
 
 loadEmployee();
 loadRequests();
+<script>
+const API = "https://daring-trust-production-8c34.up.railway.app";
+
+async function loadEmployees() {
+  const res = await fetch(API + "/employees");
+  const data = await res.json();
+  const tbody = document.getElementById("employeesTableBody");
+  tbody.innerHTML = "";
+
+  data.forEach(emp => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${emp.name}</td>
+        <td>${emp.national_id}</td>
+        <td>${emp.department || "-"}</td>
+        <td>${emp.position || "-"}</td>
+        <td>${emp.salary || "-"}</td>
+        <td>${emp.status}</td>
+        <td>
+          <button onclick="deleteEmployee(${emp.id})">حذف</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function deleteEmployee(id) {
+  await fetch(API + "/employees/" + id, { method: "DELETE" });
+  loadEmployees();
+}
+
+async function loadRequests() {
+  const res = await fetch(API + "/requests");
+  const data = await res.json();
+  const tbody = document.getElementById("requestsTableBody");
+  tbody.innerHTML = "";
+
+  data.forEach(r => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${r.name}</td>
+        <td>${r.type}</td>
+        <td>${r.details}</td>
+        <td>${r.status}</td>
+        <td>
+          <button onclick="updateRequest(${r.id},'approved')">اعتماد</button>
+          <button onclick="updateRequest(${r.id},'rejected')">رفض</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function updateRequest(id,status){
+  await fetch(API + "/requests/" + id,{
+    method:"PUT",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({status})
+  });
+  loadRequests();
+}
+
+async function loadFiles(){
+  const res = await fetch(API + "/files");
+  const data = await res.json();
+  const tbody = document.getElementById("filesTableBody");
+  tbody.innerHTML="";
+
+  data.forEach(f=>{
+    tbody.innerHTML+=`
+      <tr>
+        <td>${f.name}</td>
+        <td><a href="/uploads/${f.file_path}" target="_blank">${f.file_name}</a></td>
+      </tr>
+    `;
+  });
+}
+
+loadEmployees();
+loadRequests();
+loadFiles();
 </script>
 
 </body>
