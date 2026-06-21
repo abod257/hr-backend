@@ -61,13 +61,37 @@ function verifyToken(req, res, next) {
 }
 
 /* ================================
-   ✅ LOGIN
+   ✅ LOGIN (Admin مؤقت + موظفين)
 ================================ */
 
 app.post("/login", async (req, res) => {
 
   const { name, national_id, birth_year } = req.body;
 
+  /* ✅ ADMIN مؤقت */
+  if (
+    name === "admin" &&
+    national_id === "0000" &&
+    Number(birth_year) === 1990
+  ) {
+
+    const token = jwt.sign(
+      { role: "admin" },
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+
+    return res.json({
+      success: true,
+      token,
+      user: {
+        name: "admin",
+        role: "admin"
+      }
+    });
+  }
+
+  /* ✅ موظف من قاعدة البيانات */
   const result = await pool.query(
     `SELECT * FROM employees 
      WHERE TRIM(name)=TRIM($1) 
@@ -97,6 +121,7 @@ app.post("/login", async (req, res) => {
       role: user.role
     }
   });
+
 });
 
 /* ================================
@@ -119,8 +144,8 @@ app.post("/upload-employees", verifyToken, upload.single("file"), async (req, re
 
     await pool.query(
       `INSERT INTO employees 
-      (employee_code, name, national_id, nationality, birth_year, salary) 
-      VALUES ($1,$2,$3,$4,$5,$6)
+      (employee_code, name, national_id, nationality, birth_year, salary, role) 
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
       ON CONFLICT (national_id) DO NOTHING`,
       [
         row.employee_code,
@@ -128,7 +153,8 @@ app.post("/upload-employees", verifyToken, upload.single("file"), async (req, re
         row.national_id,
         row.nationality,
         row.birth_year,
-        row.salary
+        row.salary,
+        row.role || "employee"
       ]
     );
   }
