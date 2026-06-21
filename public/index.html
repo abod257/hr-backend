@@ -1,85 +1,12 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>شركة لانا الطبية | تسجيل الدخول</title>
-
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
-
-  <style>
-    body{
-      font-family:'Cairo',sans-serif;
-      background:#eef4ff;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      height:100vh;
-      margin:0;
-    }
-    .card{
-      background:#fff;
-      padding:30px;
-      width:360px;
-      border-radius:20px;
-      box-shadow:0 20px 40px rgba(0,0,0,0.1);
-      text-align:center;
-    }
-    input{
-      width:100%;
-      padding:12px;
-      margin:10px 0;
-      border-radius:10px;
-      border:1px solid #ccc;
-    }
-    button{
-      width:100%;
-      padding:12px;
-      border:none;
-      border-radius:10px;
-      background:#0f172a;
-      color:#fff;
-      font-weight:bold;
-      cursor:pointer;
-    }
-    button:hover{opacity:.9;}
-    .message{
-      margin-top:10px;
-      font-weight:bold;
-    }
-  </style>
-</head>
-<body>
-
-<div class="card">
-
-  <h2>تسجيل الدخول</h2>
-
-  <input id="employeeName" type="text" placeholder="الاسم الكامل">
-  <input id="employeeNationalId" type="text" placeholder="رقم الهوية">
-
-  <button onclick="login()">دخول</button>
-
-  <div class="message" id="msg"></div>
-
-</div>
-
-<script>
-const API_BASE = "https://daring-trust-production-8c34.up.railway.app";
-
-function showMessage(text, color){
-  const msg = document.getElementById("msg");
-  msg.style.color = color;
-  msg.innerHTML = text;
-}
-
 async function login() {
 
   const name = document.getElementById("employeeName").value.trim();
   const national_id = document.getElementById("employeeNationalId").value.trim();
 
-  if (!name || !national_id) {
-    showMessage("⚠️ الرجاء إدخال جميع البيانات", "red");
+  // ✅ دخول المسؤول مباشرة بدون سيرفر
+  if (name === "admin" && national_id === "0000") {
+    sessionStorage.setItem("role", "admin");
+    window.location.href = "/admin-dashboard.html";
     return;
   }
 
@@ -87,10 +14,7 @@ async function login() {
     const response = await fetch(API_BASE + "/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        national_id
-      })
+      body: JSON.stringify({ name, national_id })
     });
 
     const data = await response.json();
@@ -103,21 +27,9 @@ async function login() {
     sessionStorage.setItem("token", data.token);
     sessionStorage.setItem("role", data.user.role);
 
-    showMessage("✅ تم تسجيل الدخول", "green");
-
-    setTimeout(() => {
-      if (data.user.role === "admin") {
-        window.location.href = "/admin-dashboard.html";
-      } else {
-        window.location.href = "/employee-dashboard.html";
-      }
-    }, 800);
+    window.location.href = "/employee-dashboard.html";
 
   } catch (error) {
     showMessage("❌ خطأ في الاتصال بالخادم", "red");
   }
 }
-</script>
-
-</body>
-</html>
