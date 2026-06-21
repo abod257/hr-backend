@@ -61,17 +61,22 @@ function verifyToken(req, res, next) {
 }
 
 /* ================================
-   ✅ LOGIN (بدون سنة الميلاد)
+   ✅ LOGIN (حل جذري)
 ================================ */
 
 app.post("/login", async (req, res) => {
 
   const { name, national_id } = req.body;
 
-  /* ✅ ADMIN مؤقت */
+  console.log("LOGIN DATA:", name, national_id); // ✅ للتأكد أن الطلب يصل
+
+  const cleanName = String(name || "").trim().toLowerCase();
+  const cleanNationalId = String(national_id || "").trim();
+
+  /* ✅ ADMIN مؤقت (تطبيع كامل) */
   if (
-    name === "admin" &&
-    national_id === "0000"
+    cleanName === "admin" &&
+    cleanNationalId === "0000"
   ) {
 
     const token = jwt.sign(
@@ -93,9 +98,9 @@ app.post("/login", async (req, res) => {
   /* ✅ موظف من قاعدة البيانات */
   const result = await pool.query(
     `SELECT * FROM employees 
-     WHERE TRIM(name)=TRIM($1) 
+     WHERE LOWER(TRIM(name))=$1 
      AND national_id=$2`,
-    [name, national_id]
+    [cleanName, cleanNationalId]
   );
 
   if (result.rows.length === 0) {
