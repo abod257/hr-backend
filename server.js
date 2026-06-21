@@ -1,256 +1,108 @@
 const express = require("express");
-const { Pool } = require("pg");
 const cors = require("cors");
-const multer = require("multer");
-const fs = require("fs");
 const jwt = require("jsonwebtoken");
+const fetch = require("node-fetch");
 require("dotenv").config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public"));
-app.use("/uploads", express.static("uploads"));
 
-/* ========= Upload Setup ========= */
-
-if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + "-" + file.originalname),
-});
-const upload = multer({ storage });
-
-/* ========= Database ========= */
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
-
-async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS employees (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      national_id TEXT NOT NULL UNIQUE,
-      email TEXT,
-      position TEXT,
-      department TEXT,
-      salary NUMERIC DEFAULT 0,
-      role TEXT DEFAULT 'employee',
-      status TEXT DEFAULT 'active',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS requests (
-      id SERIAL PRIMARY KEY,
-      employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
-      type TEXT,
-      details TEXT,
-      status TEXT DEFAULT 'pending',
-      admin_reply TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS files (
-      id SERIAL PRIMARY KEY,
-      employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
-      file_name TEXT,
-      file_path TEXT,
-      uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  console.log("✅ Database Ready");
-}
-
-initDB();
-
-/* ========= AUTH MIDDLEWARE ========= */
-
-function verifyToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(403).json({ message: "No token provided" });
-
-  const token = authHeader.split(" ")[1];
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid token" });
-  }
-}
-
-function requireAdmin(req, res, next) {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ message: "Admin access required" });
-  }
-  next();
-}
-
-/* ========= LOGIN ========= */
+/* ================================
+   ✅ LOGIN VIA ODOO
+================================ */
 
 app.post("/login", async (req, res) => {
+
   const { name, national_id } = req.body;
 
-  const result = await pool.query(
-    "SELECT * FROM employees WHERE TRIM(name)=TRIM($1) AND national_id=$2 AND status='active'",
-    [name, national_id]
-  );
-
-  if (result.rows.length === 0) {
-    return res.status(401).json({ success: false });
+  if (!name || !national_id) {
+    return res.status(400).json({ success: false });
   }
 
-  const user = result.rows[0];
+  try {
 
-  const token = jwt.sign(
-    { id: user.id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "8h" }
-  );
+    /* 1️⃣ Authenticate with Odoo */
+    const loginResponse = await fetch("https://lanamed.odoo.com/web/session/authenticate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        params: {
+          db: "lanamedicalco-main-4789102",
+          login: "a.aljamai@lanamedical.com",
+          password: "1234"
+        }
+      })
+    });
 
-  res.json({
-    success: true,
-    token,
-    user: {
-      id: user.id,
-      name: user.name,
-      national_id: user.national_id,
-      role: user.role
+    const loginData = await loginResponse.json();
+
+    if (!loginData.result || !loginData.result.uid) {
+      return res.status(401).json({ success: false });
     }
-  });
-});
 
-/* ========= EMPLOYEES (ADMIN ONLY) ========= */
+    /* 2️⃣ Search employee in hr.employee */
+    const employeeResponse = await fetch("https://lanamed.odoo.com/web/dataset/call_kw", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "call",
+        params: {
+          model: "hr.employee",
+          method: "search_read",
+          args: [[
+            ["name", "=", name],
+            ["identification_id", "=", national_id]
+          ]],
+          kwargs: {
+            fields: ["name", "work_email", "job_title"]
+          }
+        }
+      })
+    });
 
-app.get("/employees", verifyToken, requireAdmin, async (req, res) => {
-  const result = await pool.query("SELECT * FROM employees ORDER BY id DESC");
-  res.json(result.rows);
-});
+    const employeeData = await employeeResponse.json();
 
-app.post("/employees", verifyToken, requireAdmin, async (req, res) => {
-  const { name, national_id, email, position, department, salary, role } = req.body;
+    if (!employeeData.result || employeeData.result.length === 0) {
+      return res.status(401).json({ success: false });
+    }
 
-  const result = await pool.query(
-    `INSERT INTO employees (name,national_id,email,position,department,salary,role)
-     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-    [name, national_id, email || null, position || null, department || null, salary || 0, role || "employee"]
-  );
+    const employee = employeeData.result[0];
 
-  res.json(result.rows[0]);
-});
+    /* 3️⃣ Issue JWT */
+    const token = jwt.sign(
+      { name: employee.name, role: "employee" },
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" }
+    );
 
-app.put("/employees/:id", verifyToken, requireAdmin, async (req, res) => {
-  const { name, department, position, salary, status } = req.body;
+    return res.json({
+      success: true,
+      token,
+      user: {
+        name: employee.name,
+        role: "employee"
+      }
+    });
 
-  await pool.query(
-    "UPDATE employees SET name=$1,department=$2,position=$3,salary=$4,status=$5 WHERE id=$6",
-    [name, department, position, salary, status, req.params.id]
-  );
-
-  res.json({ message: "Employee updated" });
-});
-
-app.put("/employees/archive/:id", verifyToken, requireAdmin, async (req, res) => {
-  await pool.query(
-    "UPDATE employees SET status='archived' WHERE id=$1",
-    [req.params.id]
-  );
-
-  res.json({ message: "Employee archived" });
-});
-
-/* ========= REQUESTS ========= */
-
-app.post("/requests", verifyToken, async (req, res) => {
-  const { employee_id, type, details } = req.body;
-
-  if (req.user.role !== "admin" && req.user.id != employee_id) {
-    return res.status(403).json({ message: "Access denied" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false });
   }
 
-  await pool.query(
-    "INSERT INTO requests (employee_id,type,details) VALUES ($1,$2,$3)",
-    [employee_id, type, details]
-  );
-
-  res.json({ message: "Request submitted" });
 });
 
-app.get("/requests", verifyToken, requireAdmin, async (req, res) => {
-  const result = await pool.query(`
-    SELECT requests.*, employees.name
-    FROM requests
-    JOIN employees ON requests.employee_id = employees.id
-    ORDER BY requests.id DESC
-  `);
-  res.json(result.rows);
-});
-
-app.get("/requests/:employeeId", verifyToken, async (req, res) => {
-  if (
-    req.user.role !== "admin" &&
-    req.user.id != req.params.employeeId
-  ) {
-    return res.status(403).json({ message: "Access denied" });
-  }
-
-  const result = await pool.query(
-    "SELECT * FROM requests WHERE employee_id=$1 ORDER BY id DESC",
-    [req.params.employeeId]
-  );
-
-  res.json(result.rows);
-});
-
-app.put("/requests/:id", verifyToken, requireAdmin, async (req, res) => {
-  const { status, admin_reply } = req.body;
-
-  await pool.query(
-    "UPDATE requests SET status=$1, admin_reply=$2 WHERE id=$3",
-    [status, admin_reply, req.params.id]
-  );
-
-  res.json({ message: "Request updated" });
-});
-
-/* ========= FILES ========= */
-
-app.post("/upload-file", verifyToken, upload.single("file"), async (req, res) => {
-  if (req.user.role !== "admin" && req.user.id != req.body.employee_id) {
-    return res.status(403).json({ message: "Access denied" });
-  }
-
-  await pool.query(
-    "INSERT INTO files (employee_id,file_name,file_path) VALUES ($1,$2,$3)",
-    [req.body.employee_id, req.file.originalname, req.file.filename]
-  );
-
-  res.json({ message: "File uploaded" });
-});
-
-app.get("/files", verifyToken, requireAdmin, async (req, res) => {
-  const result = await pool.query(`
-    SELECT files.*, employees.name
-    FROM files
-    JOIN employees ON files.employee_id = employees.id
-  `);
-  res.json(result.rows);
-});
-
-/* ========= START ========= */
+/* ================================
+   ✅ START SERVER
+================================ */
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("🚀 Secure HR Server running");
+  console.log("🚀 Odoo HR Server running");
 });
