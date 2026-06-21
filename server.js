@@ -3,6 +3,7 @@ const { Pool } = require("pg");
 const cors = require("cors");
 const multer = require("multer");
 const fs = require("fs");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const app = express();
@@ -12,6 +13,7 @@ app.use(express.static("public"));
 app.use("/uploads", express.static("uploads"));
 
 /* ========= Upload Setup ========= */
+
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
 const storage = multer.diskStorage({
@@ -22,6 +24,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 /* ========= Database ========= */
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
@@ -70,6 +73,30 @@ async function initDB() {
 
 initDB();
 
+/* ========= AUTH MIDDLEWARE ========= */
+
+function verifyToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(403).json({ message: "No token provided" });
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+}
+
+function requireAdmin(req, res, next) {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  next();
+}
+
 /* ========= LOGIN ========= */
 
 app.post("/login", async (req, res) => {
@@ -86,21 +113,32 @@ app.post("/login", async (req, res) => {
 
   const user = result.rows[0];
 
+  const token = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "8h" }
+  );
+
   res.json({
     success: true,
-    role: user.role,
-    user: user
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      national_id: user.national_id,
+      role: user.role
+    }
   });
 });
 
-/* ========= EMPLOYEES ========= */
+/* ========= EMPLOYEES (ADMIN ONLY) ========= */
 
-app.get("/employees", async (req, res) => {
+app.get("/employees", verifyToken, requireAdmin, async (req, res) => {
   const result = await pool.query("SELECT * FROM employees ORDER BY id DESC");
   res.json(result.rows);
 });
 
-app.post("/employees", async (req, res) => {
+app.post("/employees", verifyToken, requireAdmin, async (req, res) => {
   const { name, national_id, email, position, department, salary, role } = req.body;
 
   const result = await pool.query(
@@ -112,7 +150,7 @@ app.post("/employees", async (req, res) => {
   res.json(result.rows[0]);
 });
 
-app.put("/employees/:id", async (req, res) => {
+app.put("/employees/:id", verifyToken, requireAdmin, async (req, res) => {
   const { name, department, position, salary, status } = req.body;
 
   await pool.query(
@@ -123,7 +161,7 @@ app.put("/employees/:id", async (req, res) => {
   res.json({ message: "Employee updated" });
 });
 
-app.put("/employees/archive/:id", async (req, res) => {
+app.put("/employees/archive/:id", verifyToken, requireAdmin, async (req, res) => {
   await pool.query(
     "UPDATE employees SET status='archived' WHERE id=$1",
     [req.params.id]
@@ -134,8 +172,12 @@ app.put("/employees/archive/:id", async (req, res) => {
 
 /* ========= REQUESTS ========= */
 
-app.post("/requests", async (req, res) => {
+app.post("/requests", verifyToken, async (req, res) => {
   const { employee_id, type, details } = req.body;
+
+  if (req.user.role !== "admin" && req.user.id != employee_id) {
+    return res.status(403).json({ message: "Access denied" });
+  }
 
   await pool.query(
     "INSERT INTO requests (employee_id,type,details) VALUES ($1,$2,$3)",
@@ -145,7 +187,7 @@ app.post("/requests", async (req, res) => {
   res.json({ message: "Request submitted" });
 });
 
-app.get("/requests", async (req, res) => {
+app.get("/requests", verifyToken, requireAdmin, async (req, res) => {
   const result = await pool.query(`
     SELECT requests.*, employees.name
     FROM requests
@@ -155,15 +197,23 @@ app.get("/requests", async (req, res) => {
   res.json(result.rows);
 });
 
-app.get("/requests/:employeeId", async (req, res) => {
+app.get("/requests/:employeeId", verifyToken, async (req, res) => {
+  if (
+    req.user.role !== "admin" &&
+    req.user.id != req.params.employeeId
+  ) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
   const result = await pool.query(
     "SELECT * FROM requests WHERE employee_id=$1 ORDER BY id DESC",
     [req.params.employeeId]
   );
+
   res.json(result.rows);
 });
 
-app.put("/requests/:id", async (req, res) => {
+app.put("/requests/:id", verifyToken, requireAdmin, async (req, res) => {
   const { status, admin_reply } = req.body;
 
   await pool.query(
@@ -176,7 +226,11 @@ app.put("/requests/:id", async (req, res) => {
 
 /* ========= FILES ========= */
 
-app.post("/upload-file", upload.single("file"), async (req, res) => {
+app.post("/upload-file", verifyToken, upload.single("file"), async (req, res) => {
+  if (req.user.role !== "admin" && req.user.id != req.body.employee_id) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
   await pool.query(
     "INSERT INTO files (employee_id,file_name,file_path) VALUES ($1,$2,$3)",
     [req.body.employee_id, req.file.originalname, req.file.filename]
@@ -185,7 +239,7 @@ app.post("/upload-file", upload.single("file"), async (req, res) => {
   res.json({ message: "File uploaded" });
 });
 
-app.get("/files", async (req, res) => {
+app.get("/files", verifyToken, requireAdmin, async (req, res) => {
   const result = await pool.query(`
     SELECT files.*, employees.name
     FROM files
@@ -198,5 +252,5 @@ app.get("/files", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("🚀 Server running");
+  console.log("🚀 Secure HR Server running");
 });
