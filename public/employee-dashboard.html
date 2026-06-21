@@ -1,51 +1,63 @@
 <script>
 const API_BASE = "https://daring-trust-production-8c34.up.railway.app";
-let currentEmployee = null;
 
-/* ✅ تحقق الجلسة */
-const role = sessionStorage.getItem("empRole");
-const name = sessionStorage.getItem("empName");
-const nationalId = sessionStorage.getItem("empNationalId");
+/* ✅ قراءة بيانات الجلسة */
+const token = sessionStorage.getItem("token");
+const role = sessionStorage.getItem("role");
+const userId = sessionStorage.getItem("userId");
+const empName = sessionStorage.getItem("empName");
 
-if (!role || role !== "employee" || !name || !nationalId) {
+if (!token || role !== "employee" || !userId) {
   window.location.href = "/";
 }
 
-/* ✅ بدء التحميل */
-async function init() {
+/* ✅ Header موحد */
+function authHeader(isJson = true){
+  const headers = {
+    "Authorization": "Bearer " + token
+  };
+  if (isJson) headers["Content-Type"] = "application/json";
+  return headers;
+}
 
+/* ✅ عرض الاسم مباشرة */
+document.getElementById("empName").textContent = empName;
+
+/* ✅ تحميل طلبات الموظف */
+async function loadRequests(){
   try {
 
-    const res = await fetch(API_BASE + "/employees");
-    const employees = await res.json();
+    const res = await fetch(API_BASE + "/requests/" + userId, {
+      headers: authHeader()
+    });
 
-    currentEmployee = employees.find(
-      e => e.name === name && e.national_id === nationalId
-    );
-
-    if (!currentEmployee) {
-      sessionStorage.clear();
-      window.location.href = "/";
+    if (!res.ok) {
+      logout();
       return;
     }
 
-    renderEmployee();
-    loadRequests();
+    const data = await res.json();
+
+    const table = document.getElementById("requestsTable");
+    table.innerHTML = "";
+
+    data.forEach(r=>{
+      table.innerHTML += `
+        <tr>
+          <td>${r.type}</td>
+          <td>${new Date(r.created_at).toLocaleDateString()}</td>
+          <td>${r.status}</td>
+          <td>${r.admin_reply || "-"}</td>
+        </tr>
+      `;
+    });
 
   } catch (error) {
-    alert("حدث خطأ في الاتصال بالخادم");
-    window.location.href = "/";
+    alert("خطأ في تحميل البيانات");
   }
 }
 
-function renderEmployee(){
-  document.getElementById("empName").textContent = currentEmployee.name;
-  document.getElementById("empNationalId").textContent = currentEmployee.national_id;
-  document.getElementById("empDepartment").textContent = currentEmployee.department || "-";
-  document.getElementById("empPosition").textContent = currentEmployee.position || "-";
-  document.getElementById("empEmail").textContent = currentEmployee.email || "-";
-}
-
+/* ✅ إرسال طلب */
 async function submitRequest(type){
 
   let details = "";
@@ -71,11 +83,11 @@ async function submitRequest(type){
     return;
   }
 
-  await fetch(API_BASE+"/requests",{
+  await fetch(API_BASE + "/requests",{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      employee_id:currentEmployee.id,
+    headers: authHeader(),
+    body: JSON.stringify({
+      employee_id: userId,
       type,
       details
     })
@@ -84,26 +96,7 @@ async function submitRequest(type){
   loadRequests();
 }
 
-async function loadRequests(){
-
-  const res = await fetch(API_BASE+"/requests/"+currentEmployee.id);
-  const data = await res.json();
-
-  const table = document.getElementById("requestsTable");
-  table.innerHTML="";
-
-  data.forEach(r=>{
-    table.innerHTML += `
-      <tr>
-        <td>${r.type}</td>
-        <td>${new Date(r.created_at).toLocaleDateString()}</td>
-        <td>${r.status}</td>
-        <td>${r.admin_reply || "-"}</td>
-      </tr>
-    `;
-  });
-}
-
+/* ✅ رفع ملف */
 async function uploadFile(){
 
   const file = fileUpload.files[0];
@@ -114,16 +107,25 @@ async function uploadFile(){
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("employee_id", currentEmployee.id);
+  formData.append("employee_id", userId);
 
-  await fetch("/upload-file",{method:"POST",body:formData});
+  await fetch(API_BASE + "/upload-file",{
+    method:"POST",
+    headers:{
+      "Authorization": "Bearer " + token
+    },
+    body: formData
+  });
+
   alert("✅ تم رفع الملف");
 }
 
+/* ✅ تسجيل خروج */
 function logout(){
   sessionStorage.clear();
-  window.location.href="/";
+  window.location.href = "/";
 }
 
-init();
+/* ✅ بدء التحميل */
+loadRequests();
 </script>
