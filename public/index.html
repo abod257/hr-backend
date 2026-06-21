@@ -57,6 +57,7 @@
 
   <input id="employeeName" type="text" placeholder="الاسم الكامل">
   <input id="employeeNationalId" type="text" placeholder="رقم الهوية">
+  <input id="birthYear" type="number" placeholder="سنة الميلاد">
 
   <button onclick="login()">دخول</button>
 
@@ -77,8 +78,9 @@ async function login() {
 
   const name = document.getElementById("employeeName").value.trim();
   const national_id = document.getElementById("employeeNationalId").value.trim();
+  const birth_year = document.getElementById("birthYear").value.trim();
 
-  if (!name || !national_id) {
+  if (!name || !national_id || !birth_year) {
     showMessage("⚠️ الرجاء إدخال جميع البيانات", "red");
     return;
   }
@@ -87,21 +89,23 @@ async function login() {
     const response = await fetch(API_BASE + "/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, national_id })
+      body: JSON.stringify({
+        name,
+        national_id,
+        birth_year: Number(birth_year)
+      })
     });
 
-    if (!response.ok) {
+    const data = await response.json();
+
+    if (!data.success) {
       showMessage("❌ بيانات غير صحيحة", "red");
       return;
     }
 
-    const data = await response.json();
-
     // ✅ تخزين JWT
     sessionStorage.setItem("token", data.token);
     sessionStorage.setItem("role", data.user.role);
-    sessionStorage.setItem("userId", data.user.id);
-    sessionStorage.setItem("empName", data.user.name);
 
     showMessage("✅ تم تسجيل الدخول", "green");
 
