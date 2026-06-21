@@ -72,7 +72,7 @@ app.post("/login", async (req, res) => {
   if (
     name === "admin" &&
     national_id === "0000" &&
-    Number(birth_year) === 1990
+    String(birth_year) === "1990"
   ) {
 
     const token = jwt.sign(
