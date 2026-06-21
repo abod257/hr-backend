@@ -1,110 +1,146 @@
 const express = require("express");
+const { Pool } = require("pg");
 const cors = require("cors");
+const multer = require("multer");
+const xlsx = require("xlsx");
 const jwt = require("jsonwebtoken");
-const fetch = require("node-fetch");
 require("dotenv").config();
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public")); // ✅ يخدم ملفات HTML
+app.use(express.static("public"));
 
 /* ================================
-   ✅ LOGIN VIA ODOO
+   ✅ DATABASE
+================================ */
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS employees (
+      id SERIAL PRIMARY KEY,
+      employee_code TEXT,
+      name TEXT,
+      national_id TEXT UNIQUE,
+      nationality TEXT,
+      birth_year INTEGER,
+      salary NUMERIC,
+      role TEXT DEFAULT 'employee',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  console.log("✅ Database Ready");
+}
+
+initDB();
+
+/* ================================
+   ✅ JWT
+================================ */
+
+function verifyToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(403).json({ message: "No token" });
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+}
+
+/* ================================
+   ✅ LOGIN
 ================================ */
 
 app.post("/login", async (req, res) => {
 
-  const { name, national_id } = req.body;
+  const { name, national_id, birth_year } = req.body;
 
-  if (!name || !national_id) {
-    return res.status(400).json({ success: false });
+  const result = await pool.query(
+    `SELECT * FROM employees 
+     WHERE TRIM(name)=TRIM($1) 
+     AND national_id=$2 
+     AND birth_year=$3`,
+    [name, national_id, birth_year]
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(401).json({ success: false });
   }
 
-  try {
+  const user = result.rows[0];
 
-    /* 1️⃣ Authenticate with Odoo */
-    const loginResponse = await fetch("https://lanamed.odoo.com/web/session/authenticate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        params: {
-          db: "lanamedicalco-main-4789102",
-          login: "a.aljamai@lanamedical.com",
-          password: "1234"
-        }
-      })
-    });
+  const token = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "8h" }
+  );
 
-    const loginData = await loginResponse.json();
-
-    if (!loginData.result || !loginData.result.uid) {
-      return res.status(401).json({ success: false });
+  res.json({
+    success: true,
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      role: user.role
     }
-
-    /* 2️⃣ Search employee in hr.employee */
-    const employeeResponse = await fetch("https://lanamed.odoo.com/web/dataset/call_kw", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        method: "call",
-        params: {
-          model: "hr.employee",
-          method: "search_read",
-          args: [[
-            ["name", "=", name],
-            ["identification_id", "=", national_id]
-          ]],
-          kwargs: {
-            fields: ["name", "work_email", "job_title"]
-          }
-        }
-      })
-    });
-
-    const employeeData = await employeeResponse.json();
-
-    if (!employeeData.result || employeeData.result.length === 0) {
-      return res.status(401).json({ success: false });
-    }
-
-    const employee = employeeData.result[0];
-
-    /* 3️⃣ Issue JWT */
-    const token = jwt.sign(
-      { name: employee.name, role: "employee" },
-      process.env.JWT_SECRET,
-      { expiresIn: "8h" }
-    );
-
-    return res.json({
-      success: true,
-      token,
-      user: {
-        name: employee.name,
-        role: "employee"
-      }
-    });
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false });
-  }
-
+  });
 });
 
 /* ================================
-   ✅ START SERVER
+   ✅ EXCEL UPLOAD
+================================ */
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+app.post("/upload-employees", verifyToken, upload.single("file"), async (req, res) => {
+
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Admin only" });
+  }
+
+  const workbook = xlsx.read(req.file.buffer);
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const data = xlsx.utils.sheet_to_json(sheet);
+
+  for (const row of data) {
+
+    await pool.query(
+      `INSERT INTO employees 
+      (employee_code, name, national_id, nationality, birth_year, salary) 
+      VALUES ($1,$2,$3,$4,$5,$6)
+      ON CONFLICT (national_id) DO NOTHING`,
+      [
+        row.employee_code,
+        row.name,
+        row.national_id,
+        row.nationality,
+        row.birth_year,
+        row.salary
+      ]
+    );
+  }
+
+  res.json({ message: "Employees uploaded successfully" });
+});
+
+/* ================================
+   ✅ START
 ================================ */
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("🚀 Odoo HR Server running");
+  console.log("🚀 HR Excel Server running");
 });
