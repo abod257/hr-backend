@@ -43,10 +43,6 @@
       cursor:pointer;
     }
     button:hover{opacity:.9;}
-    .admin-box{
-      margin-bottom:20px;
-      text-align:right;
-    }
     .message{
       margin-top:10px;
       font-weight:bold;
@@ -57,20 +53,12 @@
 
 <div class="card">
 
-  <div class="admin-box">
-    <details>
-      <summary>دخول المسؤول</summary>
-      <input id="adminPassword" type="password" placeholder="كلمة المرور">
-      <button onclick="loginAdmin()">دخول المسؤول</button>
-    </details>
-  </div>
-
-  <h2>تسجيل دخول الموظفين</h2>
+  <h2>تسجيل الدخول</h2>
 
   <input id="employeeName" type="text" placeholder="الاسم الكامل">
   <input id="employeeNationalId" type="text" placeholder="رقم الهوية">
 
-  <button onclick="loginEmployee()">تحقق ودخول</button>
+  <button onclick="login()">دخول</button>
 
   <div class="message" id="msg"></div>
 
@@ -85,8 +73,7 @@ function showMessage(text, color){
   msg.innerHTML = text;
 }
 
-/* ✅ تسجيل دخول موظف */
-async function loginEmployee() {
+async function login() {
 
   const name = document.getElementById("employeeName").value.trim();
   const national_id = document.getElementById("employeeNationalId").value.trim();
@@ -104,46 +91,32 @@ async function loginEmployee() {
     });
 
     if (!response.ok) {
-      showMessage("❌ الاسم أو رقم الهوية غير صحيح", "red");
+      showMessage("❌ بيانات غير صحيحة", "red");
       return;
     }
 
     const data = await response.json();
 
-    // ✅ تخزين الجلسة بشكل موحد
-    sessionStorage.setItem("empName", data.employee.name);
-    sessionStorage.setItem("empNationalId", data.employee.national_id);
-    sessionStorage.setItem("empRole", "employee");
+    // ✅ تخزين JWT
+    sessionStorage.setItem("token", data.token);
+    sessionStorage.setItem("role", data.user.role);
+    sessionStorage.setItem("userId", data.user.id);
+    sessionStorage.setItem("empName", data.user.name);
 
-    showMessage("✅ تم تسجيل الدخول بنجاح", "green");
+    showMessage("✅ تم تسجيل الدخول", "green");
 
     setTimeout(() => {
-      window.location.href = "/employee-dashboard.html";
+      if (data.user.role === "admin") {
+        window.location.href = "/admin-dashboard.html";
+      } else {
+        window.location.href = "/employee-dashboard.html";
+      }
     }, 800);
 
   } catch (error) {
     showMessage("❌ خطأ في الاتصال بالخادم", "red");
   }
 }
-
-/* ✅ تسجيل دخول مسؤول */
-function loginAdmin(){
-
-  const adminPassword = document.getElementById("adminPassword").value.trim();
-
-  if (adminPassword === "admin123") {
-
-    // ✅ تخزين جلسة الأدمن
-    sessionStorage.setItem("empRole", "admin");
-    sessionStorage.setItem("empName", "Administrator");
-
-    window.location.href = "/admin-dashboard.html";
-
-  } else {
-    showMessage("❌ كلمة المرور غير صحيحة", "red");
-  }
-}
-
 </script>
 
 </body>
