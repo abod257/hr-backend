@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لوحة المسؤول</title>
-
+<title>لوحة المسؤول الاحترافية</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
 
 <style>
 :root{
   --primary:#0f172a;
   --accent:#20c86f;
+  --danger:#dc2626;
+  --success:#16a34a;
   --bg:#f1f5f9;
   --card:#ffffff;
-  --muted:#64748b;
   --line:#e2e8f0;
   --shadow:0 25px 60px rgba(15,23,42,.12);
 }
@@ -37,9 +37,9 @@ body{
 .logout-btn{
   background:#fff;
   color:var(--primary);
-  padding:8px 16px;
+  padding:8px 14px;
   border:none;
-  border-radius:12px;
+  border-radius:10px;
   font-weight:700;
   cursor:pointer;
 }
@@ -59,7 +59,7 @@ body{
 
 .tab{
   padding:10px 16px;
-  border-radius:12px;
+  border-radius:10px;
   border:1px solid var(--line);
   background:#fff;
   cursor:pointer;
@@ -71,13 +71,8 @@ body{
   color:#fff;
 }
 
-.section{
-  display:none;
-}
-
-.section.active{
-  display:block;
-}
+.section{display:none}
+.section.active{display:block}
 
 .card{
   background:var(--card);
@@ -93,44 +88,38 @@ table{
 }
 
 th,td{
-  padding:12px;
+  padding:10px;
   border-bottom:1px solid var(--line);
   text-align:right;
 }
 
-th{
-  background:#f8fafc;
-}
-
-input,select,textarea{
-  width:100%;
-  padding:10px;
-  margin:8px 0;
-  border-radius:10px;
+input,select{
+  padding:6px;
+  border-radius:6px;
   border:1px solid var(--line);
 }
 
-button{
-  padding:6px 12px;
+.btn{
+  padding:6px 10px;
   border:none;
-  border-radius:8px;
+  border-radius:6px;
   cursor:pointer;
+  color:#fff;
 }
 
-.btn-delete{background:#dc2626;color:#fff}
-.btn-approve{background:#16a34a;color:#fff}
-.btn-reject{background:#991b1b;color:#fff}
-
-.search-box{
-  margin-bottom:15px;
-}
+.btn-delete{background:var(--danger)}
+.btn-archive{background:#f59e0b}
+.btn-approve{background:var(--success)}
+.btn-reject{background:var(--danger)}
+.btn-save{background:var(--primary)}
 
 </style>
 </head>
+
 <body>
 
 <div class="topbar">
-  <h2>لوحة المسؤول</h2>
+  <h2>لوحة المسؤول الاحترافية</h2>
   <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
 </div>
 
@@ -139,6 +128,7 @@ button{
 <div class="tabs">
   <div class="tab active" onclick="showTab('employees')">الموظفون</div>
   <div class="tab" onclick="showTab('requests')">الطلبات</div>
+  <div class="tab" onclick="showTab('salary')">الرواتب</div>
   <div class="tab" onclick="showTab('files')">الملفات</div>
   <div class="tab" onclick="showTab('settings')">الإعدادات</div>
 </div>
@@ -146,15 +136,12 @@ button{
 <!-- الموظفون -->
 <div id="employees" class="section active">
   <div class="card">
-    <h3>جميع الموظفين</h3>
-
-    <input id="employeeSearch" class="search-box" placeholder="بحث بالاسم أو الهوية" onkeyup="filterEmployees()">
-
+    <input id="searchInput" placeholder="بحث..." onkeyup="filterEmployees()">
     <table>
       <thead>
         <tr>
           <th>الاسم</th>
-          <th>رقم الهوية</th>
+          <th>الهوية</th>
           <th>القسم</th>
           <th>المسمى</th>
           <th>الراتب</th>
@@ -170,7 +157,6 @@ button{
 <!-- الطلبات -->
 <div id="requests" class="section">
   <div class="card">
-    <h3>جميع الطلبات</h3>
     <table>
       <thead>
         <tr>
@@ -187,10 +173,25 @@ button{
   </div>
 </div>
 
+<!-- الرواتب -->
+<div id="salary" class="section">
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>الموظف</th>
+          <th>الراتب الحالي</th>
+          <th>تعديل</th>
+        </tr>
+      </thead>
+      <tbody id="salaryTable"></tbody>
+    </table>
+  </div>
+</div>
+
 <!-- الملفات -->
 <div id="files" class="section">
   <div class="card">
-    <h3>الملفات المرفوعة</h3>
     <table>
       <thead>
         <tr>
@@ -206,17 +207,21 @@ button{
 <!-- الإعدادات -->
 <div id="settings" class="section">
   <div class="card">
-    <h3>إعدادات الشركة</h3>
     <input type="file" id="logoInput">
-    <button onclick="uploadLogo()">رفع الشعار</button>
+    <button class="btn btn-save" onclick="uploadLogo()">رفع الشعار</button>
   </div>
 </div>
 
 </div>
 
 <script>
-const API = "https://daring-trust-production-8c34.up.railway.app";
+const API="https://daring-trust-production-8c34.up.railway.app";
+const token=localStorage.getItem("token");
+if(!token) location.href="/";
 
+let employeesData=[];
+
+/* Tabs */
 function showTab(id){
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
@@ -224,29 +229,29 @@ function showTab(id){
   event.target.classList.add("active");
 }
 
-/* ================= EMPLOYEES ================= */
-let employeesData = [];
-
+/* EMPLOYEES */
 async function loadEmployees(){
-  const res = await fetch(API + "/employees");
-  employeesData = await res.json();
-  renderEmployees(employeesData);
+  const res=await fetch(API+"/employees",{headers:{Authorization:"Bearer "+token}});
+  const data=await res.json();
+  employeesData=data;
+  renderEmployees(data);
 }
 
 function renderEmployees(data){
-  const table = document.getElementById("employeesTable");
+  const table=document.getElementById("employeesTable");
   table.innerHTML="";
-  data.forEach(emp=>{
-    table.innerHTML += `
+  data.forEach(e=>{
+    table.innerHTML+=`
       <tr>
-        <td>${emp.name}</td>
-        <td>${emp.national_id}</td>
-        <td>${emp.department || "-"}</td>
-        <td>${emp.position || "-"}</td>
-        <td>${emp.salary || "-"}</td>
-        <td>${emp.status}</td>
+        <td>${e.name}</td>
+        <td>${e.national_id}</td>
+        <td>${e.department||"-"}</td>
+        <td>${e.position||"-"}</td>
+        <td>${e.salary||0}</td>
+        <td>${e.status}</td>
         <td>
-          <button class="btn-delete" onclick="deleteEmployee(${emp.id})">حذف</button>
+          <button class="btn btn-archive" onclick="archiveEmployee(${e.id})">أرشفة</button>
+          <button class="btn btn-delete" onclick="deleteEmployee(${e.id})">حذف</button>
         </td>
       </tr>
     `;
@@ -254,37 +259,38 @@ function renderEmployees(data){
 }
 
 function filterEmployees(){
-  const value = document.getElementById("employeeSearch").value.toLowerCase();
-  const filtered = employeesData.filter(emp =>
-    emp.name.toLowerCase().includes(value) ||
-    emp.national_id.includes(value)
-  );
+  const val=document.getElementById("searchInput").value.toLowerCase();
+  const filtered=employeesData.filter(e=>e.name.toLowerCase().includes(val)||e.national_id.includes(val));
   renderEmployees(filtered);
 }
 
 async function deleteEmployee(id){
-  await fetch(API + "/employees/" + id, {method:"DELETE"});
+  await fetch(API+"/employees/"+id,{method:"DELETE",headers:{Authorization:"Bearer "+token}});
   loadEmployees();
 }
 
-/* ================= REQUESTS ================= */
+async function archiveEmployee(id){
+  await fetch(API+"/employees/archive/"+id,{method:"PUT",headers:{Authorization:"Bearer "+token}});
+  loadEmployees();
+}
 
+/* REQUESTS */
 async function loadRequests(){
-  const res = await fetch(API + "/requests");
-  const data = await res.json();
-  const table = document.getElementById("requestsTable");
+  const res=await fetch(API+"/requests",{headers:{Authorization:"Bearer "+token}});
+  const data=await res.json();
+  const table=document.getElementById("requestsTable");
   table.innerHTML="";
   data.forEach(r=>{
-    table.innerHTML += `
+    table.innerHTML+=`
       <tr>
         <td>${r.name}</td>
         <td>${r.type}</td>
         <td>${r.details}</td>
         <td>${r.status}</td>
-        <td><textarea id="reply_${r.id}">${r.admin_reply || ""}</textarea></td>
+        <td><textarea id="reply_${r.id}">${r.admin_reply||""}</textarea></td>
         <td>
-          <button class="btn-approve" onclick="updateRequest(${r.id},'approved')">اعتماد</button>
-          <button class="btn-reject" onclick="updateRequest(${r.id},'rejected')">رفض</button>
+          <button class="btn btn-approve" onclick="updateRequest(${r.id},'approved')">اعتماد</button>
+          <button class="btn btn-reject" onclick="updateRequest(${r.id},'rejected')">رفض</button>
         </td>
       </tr>
     `;
@@ -292,24 +298,51 @@ async function loadRequests(){
 }
 
 async function updateRequest(id,status){
-  const reply = document.getElementById("reply_"+id).value;
-  await fetch(API + "/requests/" + id,{
+  const reply=document.getElementById("reply_"+id).value;
+  await fetch(API+"/requests/"+id,{
     method:"PUT",
-    headers:{"Content-Type":"application/json"},
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
     body:JSON.stringify({status,admin_reply:reply})
   });
   loadRequests();
 }
 
-/* ================= FILES ================= */
+/* SALARY */
+async function loadSalary(){
+  const res=await fetch(API+"/employees",{headers:{Authorization:"Bearer "+token}});
+  const data=await res.json();
+  const table=document.getElementById("salaryTable");
+  table.innerHTML="";
+  data.forEach(e=>{
+    table.innerHTML+=`
+      <tr>
+        <td>${e.name}</td>
+        <td>${e.salary||0}</td>
+        <td><button class="btn btn-save" onclick="updateSalary(${e.id})">تعديل</button></td>
+      </tr>
+    `;
+  });
+}
 
+async function updateSalary(id){
+  const salary=prompt("أدخل الراتب الجديد:");
+  if(!salary) return;
+  await fetch(API+"/employees/"+id,{
+    method:"PUT",
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    body:JSON.stringify({salary})
+  });
+  loadSalary();
+}
+
+/* FILES */
 async function loadFiles(){
-  const res = await fetch(API + "/files");
-  const data = await res.json();
-  const table = document.getElementById("filesTable");
+  const res=await fetch(API+"/files",{headers:{Authorization:"Bearer "+token}});
+  const data=await res.json();
+  const table=document.getElementById("filesTable");
   table.innerHTML="";
   data.forEach(f=>{
-    table.innerHTML += `
+    table.innerHTML+=`
       <tr>
         <td>${f.name}</td>
         <td><a href="/uploads/${f.file_path}" target="_blank">${f.file_name}</a></td>
@@ -318,29 +351,24 @@ async function loadFiles(){
   });
 }
 
-/* ================= SETTINGS ================= */
-
+/* SETTINGS */
 async function uploadLogo(){
-  const file = logoInput.files[0];
+  const file=logoInput.files[0];
   if(!file) return;
-
-  const formData = new FormData();
-  formData.append("logo", file);
-
-  await fetch("/company-logo",{
-    method:"POST",
-    body:formData
-  });
-
+  const formData=new FormData();
+  formData.append("logo",file);
+  await fetch("/company-logo",{method:"POST",headers:{Authorization:"Bearer "+token},body:formData});
   alert("✅ تم تحديث الشعار");
 }
 
 function logout(){
-  window.location.href="/";
+  localStorage.removeItem("token");
+  location.href="/";
 }
 
 loadEmployees();
 loadRequests();
+loadSalary();
 loadFiles();
 </script>
 
