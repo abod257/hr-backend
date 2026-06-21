@@ -1,19 +1,8 @@
 <script>
 const API = "https://daring-trust-production-8c34.up.railway.app";
 
-/* ✅ تحقق بسيط من الدور فقط (بدون JWT حالياً) */
-const role = sessionStorage.getItem("role");
-
-if (role !== "admin") {
-  window.location.href = "/";
-}
-
-/* ✅ Header بسيط بدون توكن */
-function authHeader(){
-  return {
-    "Content-Type": "application/json"
-  };
-}
+/* ✅ لا يوجد تحقق حالياً */
+console.log("Admin dashboard loaded");
 
 /* ✅ Tabs */
 function showTab(id){
@@ -34,12 +23,13 @@ async function loadEmployees(){
     employeesData = data;
     renderEmployees(data);
   } catch {
-    alert("خطأ في تحميل الموظفين");
+    console.log("خطأ في تحميل الموظفين");
   }
 }
 
 function renderEmployees(data){
   const table = document.getElementById("employeesTable");
+  if(!table) return;
   table.innerHTML = "";
 
   data.forEach(e=>{
