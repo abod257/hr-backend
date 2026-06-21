@@ -61,18 +61,17 @@ function verifyToken(req, res, next) {
 }
 
 /* ================================
-   ✅ LOGIN (Admin مؤقت + موظفين)
+   ✅ LOGIN (بدون سنة الميلاد)
 ================================ */
 
 app.post("/login", async (req, res) => {
 
-  const { name, national_id, birth_year } = req.body;
+  const { name, national_id } = req.body;
 
   /* ✅ ADMIN مؤقت */
   if (
     name === "admin" &&
-    national_id === "0000" &&
-    String(birth_year) === "1990"
+    national_id === "0000"
   ) {
 
     const token = jwt.sign(
@@ -95,9 +94,8 @@ app.post("/login", async (req, res) => {
   const result = await pool.query(
     `SELECT * FROM employees 
      WHERE TRIM(name)=TRIM($1) 
-     AND national_id=$2 
-     AND birth_year=$3`,
-    [name, national_id, birth_year]
+     AND national_id=$2`,
+    [name, national_id]
   );
 
   if (result.rows.length === 0) {
