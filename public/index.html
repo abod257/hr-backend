@@ -1,47 +1,76 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل الدخول</title>
+
+<style>
+body{
+  font-family: Arial;
+  background:#eef4ff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.card{
+  background:#fff;
+  padding:30px;
+  width:350px;
+  border-radius:12px;
+  text-align:center;
+}
+input{
+  width:100%;
+  padding:10px;
+  margin:10px 0;
+}
+button{
+  width:100%;
+  padding:10px;
+  background:#0f172a;
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+.message{
+  margin-top:10px;
+  color:red;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>تسجيل الدخول</h2>
+
+  <input id="employeeName" type="text" placeholder="الاسم">
+  <input id="employeeNationalId" type="text" placeholder="رقم الهوية">
+
+  <button onclick="login()">دخول</button>
+
+  <div id="msg" class="message"></div>
+</div>
+
 <script>
 
-const API_BASE = "https://daring-trust-production-8c34.up.railway.app";
-
-function showMessage(text, color){
-  const msg = document.getElementById("msg");
-  msg.style.color = color;
-  msg.innerHTML = text;
-}
-
-async function login() {
+function login(){
 
   const name = document.getElementById("employeeName").value.trim();
   const national_id = document.getElementById("employeeNationalId").value.trim();
 
-  // ✅ دخول المسؤول مباشرة بدون سيرفر
-  if (name === "admin" && national_id === "0000") {
-    sessionStorage.setItem("role", "admin");
+  if(name === "admin" && national_id === "0000"){
     window.location.href = "/admin-dashboard.html";
     return;
   }
 
-  try {
-    const response = await fetch(API_BASE + "/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, national_id })
-    });
+  document.getElementById("msg").innerText = "بيانات غير صحيحة";
 
-    const data = await response.json();
-
-    if (!data.success) {
-      showMessage("❌ بيانات غير صحيحة", "red");
-      return;
-    }
-
-    sessionStorage.setItem("token", data.token);
-    sessionStorage.setItem("role", data.user.role);
-
-    window.location.href = "/employee-dashboard.html";
-
-  } catch (error) {
-    showMessage("❌ خطأ في الاتصال بالخادم", "red");
-  }
 }
 
 </script>
+
+</body>
+</html>
