@@ -1,232 +1,41 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>شركة لانا الطبية | لوحة الموظف</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
-
-<style>
-:root{
-  --primary:#0f172a;
-  --accent:#20c86f;
-  --bg1:#eef4ff;
-  --bg2:#dff1ff;
-  --card:#ffffff;
-  --muted:#64748b;
-  --line:#e2e8f0;
-  --shadow:0 30px 70px rgba(15,23,42,.15);
-}
-
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:'Cairo',sans-serif;
-  background:linear-gradient(135deg,var(--bg1),var(--bg2));
-}
-
-.topbar{
-  background:var(--primary);
-  color:#fff;
-  padding:16px 24px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.logout-btn{
-  background:#fff;
-  color:var(--primary);
-  padding:8px 14px;
-  border:none;
-  border-radius:12px;
-  font-weight:700;
-  cursor:pointer;
-}
-
-.container{
-  max-width:1300px;
-  margin:40px auto;
-  padding:0 20px;
-}
-
-.hero{
-  background:linear-gradient(135deg,#0f172a,#134e4a);
-  color:#fff;
-  padding:35px;
-  border-radius:24px;
-  margin-bottom:30px;
-}
-
-.grid{
-  display:grid;
-  gap:24px;
-}
-.grid-2{
-  grid-template-columns:repeat(auto-fit,minmax(400px,1fr));
-}
-
-.card{
-  background:var(--card);
-  padding:25px;
-  border-radius:28px;
-  box-shadow:var(--shadow);
-}
-
-.card h3{
-  margin-top:0;
-}
-
-.info-row{
-  display:flex;
-  justify-content:space-between;
-  padding:12px 0;
-  border-bottom:1px solid var(--line);
-}
-.info-row:last-child{border:none}
-
-.label{color:var(--muted);font-weight:700}
-.value{font-weight:900}
-
-input, textarea{
-  width:100%;
-  padding:12px;
-  margin:8px 0 14px 0;
-  border-radius:14px;
-  border:1px solid var(--line);
-}
-
-textarea{min-height:100px}
-
-.submit-btn{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:14px;
-  background:var(--primary);
-  color:#fff;
-  font-weight:800;
-  cursor:pointer;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-th,td{
-  padding:12px;
-  border-bottom:1px solid var(--line);
-  text-align:right;
-}
-th{background:#f8fafc}
-</style>
-</head>
-
-<body>
-
-<div class="topbar">
-  <h2>لوحة الموظف</h2>
-  <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
-</div>
-
-<div class="container">
-
-<div class="hero">
-  <h1>مرحباً بك 👋</h1>
-  <p>لوحة الموظف الرسمية المرتبطة بقاعدة البيانات</p>
-</div>
-
-<div class="grid grid-2">
-
-<div class="card">
-<h3>معلومات الموظف</h3>
-<div class="info-row"><span class="label">الاسم</span><span id="empName" class="value"></span></div>
-<div class="info-row"><span class="label">رقم الهوية</span><span id="empNationalId" class="value"></span></div>
-<div class="info-row"><span class="label">القسم</span><span id="empDepartment" class="value"></span></div>
-<div class="info-row"><span class="label">المسمى الوظيفي</span><span id="empPosition" class="value"></span></div>
-<div class="info-row"><span class="label">البريد</span><span id="empEmail" class="value"></span></div>
-</div>
-
-<div class="card">
-<h3>طلب إجازة</h3>
-<input id="leaveStart" type="date">
-<input id="leaveEnd" type="date">
-<textarea id="leaveReason" placeholder="سبب الإجازة"></textarea>
-<button class="submit-btn" onclick="submitRequest('leave')">إرسال</button>
-</div>
-
-<div class="card">
-<h3>طلب سلفة</h3>
-<input id="loanAmount" type="number" placeholder="المبلغ">
-<textarea id="loanReason" placeholder="سبب السلفة"></textarea>
-<button class="submit-btn" onclick="submitRequest('loan')">إرسال</button>
-</div>
-
-<div class="card">
-<h3>شكوى</h3>
-<textarea id="complaintText" placeholder="اكتب الشكوى"></textarea>
-<button class="submit-btn" onclick="submitRequest('complaint')">إرسال</button>
-</div>
-
-<div class="card">
-<h3>طلب ترقية</h3>
-<input id="promotionTitle" type="text" placeholder="المسمى المطلوب">
-<textarea id="promotionReason" placeholder="سبب الترقية"></textarea>
-<button class="submit-btn" onclick="submitRequest('promotion')">إرسال</button>
-</div>
-
-<div class="card">
-<h3>رفع ملف PDF</h3>
-<input type="file" id="fileUpload" accept="application/pdf">
-<button class="submit-btn" onclick="uploadFile()">رفع</button>
-</div>
-
-<div class="card">
-<h3>سجل الطلبات</h3>
-<table>
-<thead>
-<tr>
-<th>النوع</th>
-<th>التاريخ</th>
-<th>الحالة</th>
-<th>رد الإدارة</th>
-</tr>
-</thead>
-<tbody id="requestsTable"></tbody>
-</table>
-</div>
-
-</div>
-</div>
-
 <script>
 const API_BASE = "https://daring-trust-production-8c34.up.railway.app";
 let currentEmployee = null;
 
+/* ✅ تحقق الجلسة */
+const role = sessionStorage.getItem("empRole");
+const name = sessionStorage.getItem("empName");
+const nationalId = sessionStorage.getItem("empNationalId");
+
+if (!role || role !== "employee" || !name || !nationalId) {
+  window.location.href = "/";
+}
+
+/* ✅ بدء التحميل */
 async function init() {
-  const name = sessionStorage.getItem("empName");
-  const nationalId = sessionStorage.getItem("empNationalId");
 
-  if (!name || !nationalId) {
+  try {
+
+    const res = await fetch(API_BASE + "/employees");
+    const employees = await res.json();
+
+    currentEmployee = employees.find(
+      e => e.name === name && e.national_id === nationalId
+    );
+
+    if (!currentEmployee) {
+      sessionStorage.clear();
+      window.location.href = "/";
+      return;
+    }
+
+    renderEmployee();
+    loadRequests();
+
+  } catch (error) {
+    alert("حدث خطأ في الاتصال بالخادم");
     window.location.href = "/";
-    return;
   }
-
-  const res = await fetch(API_BASE + "/employees");
-  const employees = await res.json();
-
-  currentEmployee = employees.find(
-    e => e.name === name && e.national_id === nationalId
-  );
-
-  if (!currentEmployee) {
-    window.location.href = "/";
-    return;
-  }
-
-  renderEmployee();
-  loadRequests();
 }
 
 function renderEmployee(){
@@ -238,19 +47,28 @@ function renderEmployee(){
 }
 
 async function submitRequest(type){
+
   let details = "";
 
   if(type==="leave"){
     details = `من ${leaveStart.value} إلى ${leaveEnd.value} - ${leaveReason.value}`;
   }
+
   if(type==="loan"){
     details = `المبلغ ${loanAmount.value} - ${loanReason.value}`;
   }
+
   if(type==="complaint"){
     details = complaintText.value;
   }
+
   if(type==="promotion"){
     details = `${promotionTitle.value} - ${promotionReason.value}`;
+  }
+
+  if(!details){
+    alert("الرجاء إدخال البيانات");
+    return;
   }
 
   await fetch(API_BASE+"/requests",{
@@ -267,6 +85,7 @@ async function submitRequest(type){
 }
 
 async function loadRequests(){
+
   const res = await fetch(API_BASE+"/requests/"+currentEmployee.id);
   const data = await res.json();
 
@@ -286,8 +105,12 @@ async function loadRequests(){
 }
 
 async function uploadFile(){
+
   const file = fileUpload.files[0];
-  if(!file) return;
+  if(!file){
+    alert("اختر ملف أولاً");
+    return;
+  }
 
   const formData = new FormData();
   formData.append("file", file);
@@ -304,6 +127,3 @@ function logout(){
 
 init();
 </script>
-
-</body>
-</html>
