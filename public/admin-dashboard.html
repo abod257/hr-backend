@@ -1,225 +1,11 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لوحة المسؤول الاحترافية</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
-
-<style>
-:root{
-  --primary:#0f172a;
-  --accent:#20c86f;
-  --danger:#dc2626;
-  --success:#16a34a;
-  --bg:#f1f5f9;
-  --card:#ffffff;
-  --line:#e2e8f0;
-  --shadow:0 25px 60px rgba(15,23,42,.12);
-}
-
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:'Cairo',sans-serif;
-  background:var(--bg);
-}
-
-.topbar{
-  background:var(--primary);
-  color:#fff;
-  padding:16px 24px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.logout-btn{
-  background:#fff;
-  color:var(--primary);
-  padding:8px 14px;
-  border:none;
-  border-radius:10px;
-  font-weight:700;
-  cursor:pointer;
-}
-
-.container{
-  max-width:1400px;
-  margin:30px auto;
-  padding:0 20px;
-}
-
-.tabs{
-  display:flex;
-  gap:10px;
-  margin-bottom:20px;
-  flex-wrap:wrap;
-}
-
-.tab{
-  padding:10px 16px;
-  border-radius:10px;
-  border:1px solid var(--line);
-  background:#fff;
-  cursor:pointer;
-  font-weight:700;
-}
-
-.tab.active{
-  background:var(--primary);
-  color:#fff;
-}
-
-.section{display:none}
-.section.active{display:block}
-
-.card{
-  background:var(--card);
-  padding:25px;
-  border-radius:20px;
-  box-shadow:var(--shadow);
-  margin-bottom:20px;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-
-th,td{
-  padding:10px;
-  border-bottom:1px solid var(--line);
-  text-align:right;
-}
-
-input,select{
-  padding:6px;
-  border-radius:6px;
-  border:1px solid var(--line);
-}
-
-.btn{
-  padding:6px 10px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  color:#fff;
-}
-
-.btn-delete{background:var(--danger)}
-.btn-archive{background:#f59e0b}
-.btn-approve{background:var(--success)}
-.btn-reject{background:var(--danger)}
-.btn-save{background:var(--primary)}
-
-</style>
-</head>
-
-<body>
-
-<div class="topbar">
-  <h2>لوحة المسؤول الاحترافية</h2>
-  <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
-</div>
-
-<div class="container">
-
-<div class="tabs">
-  <div class="tab active" onclick="showTab('employees')">الموظفون</div>
-  <div class="tab" onclick="showTab('requests')">الطلبات</div>
-  <div class="tab" onclick="showTab('salary')">الرواتب</div>
-  <div class="tab" onclick="showTab('files')">الملفات</div>
-  <div class="tab" onclick="showTab('settings')">الإعدادات</div>
-</div>
-
-<!-- الموظفون -->
-<div id="employees" class="section active">
-  <div class="card">
-    <input id="searchInput" placeholder="بحث..." onkeyup="filterEmployees()">
-    <table>
-      <thead>
-        <tr>
-          <th>الاسم</th>
-          <th>الهوية</th>
-          <th>القسم</th>
-          <th>المسمى</th>
-          <th>الراتب</th>
-          <th>الحالة</th>
-          <th>إجراء</th>
-        </tr>
-      </thead>
-      <tbody id="employeesTable"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- الطلبات -->
-<div id="requests" class="section">
-  <div class="card">
-    <table>
-      <thead>
-        <tr>
-          <th>الموظف</th>
-          <th>النوع</th>
-          <th>التفاصيل</th>
-          <th>الحالة</th>
-          <th>رد الإدارة</th>
-          <th>إجراء</th>
-        </tr>
-      </thead>
-      <tbody id="requestsTable"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- الرواتب -->
-<div id="salary" class="section">
-  <div class="card">
-    <table>
-      <thead>
-        <tr>
-          <th>الموظف</th>
-          <th>الراتب الحالي</th>
-          <th>تعديل</th>
-        </tr>
-      </thead>
-      <tbody id="salaryTable"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- الملفات -->
-<div id="files" class="section">
-  <div class="card">
-    <table>
-      <thead>
-        <tr>
-          <th>الموظف</th>
-          <th>الملف</th>
-        </tr>
-      </thead>
-      <tbody id="filesTable"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- الإعدادات -->
-<div id="settings" class="section">
-  <div class="card">
-    <input type="file" id="logoInput">
-    <button class="btn btn-save" onclick="uploadLogo()">رفع الشعار</button>
-  </div>
-</div>
-
-</div>
-
 <script>
 const API="https://daring-trust-production-8c34.up.railway.app";
-const token=localStorage.getItem("token");
-if(!token) location.href="/";
 
-let employeesData=[];
+/* ✅ تحقق دخول الأدمن */
+const role = sessionStorage.getItem("empRole");
+if (!role || role !== "admin") {
+  location.href="/";
+}
 
 /* Tabs */
 function showTab(id){
@@ -229,9 +15,11 @@ function showTab(id){
   event.target.classList.add("active");
 }
 
+let employeesData=[];
+
 /* EMPLOYEES */
 async function loadEmployees(){
-  const res=await fetch(API+"/employees",{headers:{Authorization:"Bearer "+token}});
+  const res=await fetch(API+"/employees");
   const data=await res.json();
   employeesData=data;
   renderEmployees(data);
@@ -265,18 +53,18 @@ function filterEmployees(){
 }
 
 async function deleteEmployee(id){
-  await fetch(API+"/employees/"+id,{method:"DELETE",headers:{Authorization:"Bearer "+token}});
+  await fetch(API+"/employees/"+id,{method:"DELETE"});
   loadEmployees();
 }
 
 async function archiveEmployee(id){
-  await fetch(API+"/employees/archive/"+id,{method:"PUT",headers:{Authorization:"Bearer "+token}});
+  await fetch(API+"/employees/archive/"+id,{method:"PUT"});
   loadEmployees();
 }
 
 /* REQUESTS */
 async function loadRequests(){
-  const res=await fetch(API+"/requests",{headers:{Authorization:"Bearer "+token}});
+  const res=await fetch(API+"/requests");
   const data=await res.json();
   const table=document.getElementById("requestsTable");
   table.innerHTML="";
@@ -301,7 +89,7 @@ async function updateRequest(id,status){
   const reply=document.getElementById("reply_"+id).value;
   await fetch(API+"/requests/"+id,{
     method:"PUT",
-    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    headers:{"Content-Type":"application/json"},
     body:JSON.stringify({status,admin_reply:reply})
   });
   loadRequests();
@@ -309,7 +97,7 @@ async function updateRequest(id,status){
 
 /* SALARY */
 async function loadSalary(){
-  const res=await fetch(API+"/employees",{headers:{Authorization:"Bearer "+token}});
+  const res=await fetch(API+"/employees");
   const data=await res.json();
   const table=document.getElementById("salaryTable");
   table.innerHTML="";
@@ -329,7 +117,7 @@ async function updateSalary(id){
   if(!salary) return;
   await fetch(API+"/employees/"+id,{
     method:"PUT",
-    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    headers:{"Content-Type":"application/json"},
     body:JSON.stringify({salary})
   });
   loadSalary();
@@ -337,7 +125,7 @@ async function updateSalary(id){
 
 /* FILES */
 async function loadFiles(){
-  const res=await fetch(API+"/files",{headers:{Authorization:"Bearer "+token}});
+  const res=await fetch(API+"/files");
   const data=await res.json();
   const table=document.getElementById("filesTable");
   table.innerHTML="";
@@ -357,20 +145,20 @@ async function uploadLogo(){
   if(!file) return;
   const formData=new FormData();
   formData.append("logo",file);
-  await fetch("/company-logo",{method:"POST",headers:{Authorization:"Bearer "+token},body:formData});
+  await fetch("/company-logo",{method:"POST",body:formData});
   alert("✅ تم تحديث الشعار");
 }
 
+/* ✅ تسجيل خروج نظيف */
 function logout(){
-  localStorage.removeItem("token");
+  sessionStorage.clear();
   location.href="/";
 }
 
+/* تحميل البيانات */
 loadEmployees();
 loadRequests();
 loadSalary();
 loadFiles();
-</script>
 
-</body>
-</html>
+</script>
