@@ -1,3 +1,13 @@
+<script>
+
+const API_BASE = "https://daring-trust-production-8c34.up.railway.app";
+
+function showMessage(text, color){
+  const msg = document.getElementById("msg");
+  msg.style.color = color;
+  msg.innerHTML = text;
+}
+
 async function login() {
 
   const name = document.getElementById("employeeName").value.trim();
@@ -33,3 +43,5 @@ async function login() {
     showMessage("❌ خطأ في الاتصال بالخادم", "red");
   }
 }
+
+</script>
