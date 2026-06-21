@@ -6,32 +6,22 @@ const fs = require("fs");
 require("dotenv").config();
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 app.use("/uploads", express.static("uploads"));
 
-/* =============================
-   إعداد رفع الملفات
-============================= */
-
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
-}
+/* ========= Upload Setup ========= */
+if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename: (req, file, cb) =>
     cb(null, Date.now() + "-" + file.originalname),
 });
-
 const upload = multer({ storage });
 
-/* =============================
-   قاعدة البيانات
-============================= */
-
+/* ========= Database ========= */
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
@@ -75,45 +65,35 @@ async function initDB() {
     )
   `);
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS company_settings (
-      id SERIAL PRIMARY KEY,
-      company_name TEXT,
-      logo_path TEXT
-    )
-  `);
-
   console.log("✅ Database Ready");
 }
 
 initDB();
 
-/* =============================
-   تسجيل الدخول
-============================= */
+/* ========= LOGIN ========= */
 
 app.post("/login", async (req, res) => {
   const { name, national_id } = req.body;
 
-  try {
-    const result = await pool.query(
-      "SELECT * FROM employees WHERE TRIM(name)=TRIM($1) AND national_id=$2 AND status='active'",
-      [name, national_id]
-    );
+  const result = await pool.query(
+    "SELECT * FROM employees WHERE TRIM(name)=TRIM($1) AND national_id=$2 AND status='active'",
+    [name, national_id]
+  );
 
-    if (result.rows.length > 0) {
-      res.json({ success: true, user: result.rows[0] });
-    } else {
-      res.status(401).json({ success: false });
-    }
-  } catch (err) {
-    res.status(500).json({ error: "Login error" });
+  if (result.rows.length === 0) {
+    return res.status(401).json({ success: false });
   }
+
+  const user = result.rows[0];
+
+  res.json({
+    success: true,
+    role: user.role,
+    user: user
+  });
 });
 
-/* =============================
-   الموظفين
-============================= */
+/* ========= EMPLOYEES ========= */
 
 app.get("/employees", async (req, res) => {
   const result = await pool.query("SELECT * FROM employees ORDER BY id DESC");
@@ -124,8 +104,7 @@ app.post("/employees", async (req, res) => {
   const { name, national_id, email, position, department, salary, role } = req.body;
 
   const result = await pool.query(
-    `INSERT INTO employees 
-     (name, national_id, email, position, department, salary, role)
+    `INSERT INTO employees (name,national_id,email,position,department,salary,role)
      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
     [name, national_id, email || null, position || null, department || null, salary || 0, role || "employee"]
   );
@@ -137,27 +116,23 @@ app.put("/employees/:id", async (req, res) => {
   const { name, department, position, salary, status } = req.body;
 
   await pool.query(
-    `UPDATE employees 
-     SET name=$1, department=$2, position=$3, salary=$4, status=$5
-     WHERE id=$6`,
+    "UPDATE employees SET name=$1,department=$2,position=$3,salary=$4,status=$5 WHERE id=$6",
     [name, department, position, salary, status, req.params.id]
   );
 
   res.json({ message: "Employee updated" });
 });
 
-/* ✅ أرشفة بدل حذف */
 app.put("/employees/archive/:id", async (req, res) => {
   await pool.query(
     "UPDATE employees SET status='archived' WHERE id=$1",
     [req.params.id]
   );
+
   res.json({ message: "Employee archived" });
 });
 
-/* =============================
-   الطلبات
-============================= */
+/* ========= REQUESTS ========= */
 
 app.post("/requests", async (req, res) => {
   const { employee_id, type, details } = req.body;
@@ -199,15 +174,14 @@ app.put("/requests/:id", async (req, res) => {
   res.json({ message: "Request updated" });
 });
 
-/* =============================
-   الملفات
-============================= */
+/* ========= FILES ========= */
 
 app.post("/upload-file", upload.single("file"), async (req, res) => {
   await pool.query(
     "INSERT INTO files (employee_id,file_name,file_path) VALUES ($1,$2,$3)",
     [req.body.employee_id, req.file.originalname, req.file.filename]
   );
+
   res.json({ message: "File uploaded" });
 });
 
@@ -216,31 +190,13 @@ app.get("/files", async (req, res) => {
     SELECT files.*, employees.name
     FROM files
     JOIN employees ON files.employee_id = employees.id
-    ORDER BY files.id DESC
   `);
   res.json(result.rows);
 });
 
-/* =============================
-   إعدادات الشركة
-============================= */
-
-app.post("/company-logo", upload.single("logo"), async (req, res) => {
-  await pool.query(
-    "UPDATE company_settings SET logo_path=$1 WHERE id=1",
-    [req.file.filename]
-  );
-  res.json({ message: "Logo updated" });
-});
-
-app.get("/company-settings", async (req, res) => {
-  const result = await pool.query("SELECT * FROM company_settings LIMIT 1");
-  res.json(result.rows[0] || {});
-});
-
-/* ============================= */
+/* ========= START ========= */
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on ${PORT}`);
+  console.log("🚀 Server running");
 });
