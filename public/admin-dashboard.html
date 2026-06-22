@@ -1,58 +1,104 @@
-<script>
-const API = "https://daring-trust-production-8c34.up.railway.app";
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة تحكم المسؤول | Ektefa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+        body { font-family: 'Tajawal', sans-serif; background-color: #f8fafc; }
+        .section { display: none; }
+        .active { display: block; }
+    </style>
+</head>
+<body class="flex h-screen">
 
-/* ✅ لا يوجد تحقق حالياً */
-console.log("Admin dashboard loaded");
+    <aside class="w-64 bg-white shadow-xl flex flex-col border-l border-gray-100">
+        <div class="p-8 text-3xl font-bold text-blue-600">ektefa</div>
+        <nav class="flex-1 mt-4 space-y-2 px-4">
+            <button onclick="showTab('dashboard')" class="tab active w-full text-right py-3 px-4 rounded-lg bg-blue-50 text-blue-700">لوحة التحكم</button>
+            <button onclick="showTab('employees')" class="tab w-full text-right py-3 px-4 rounded-lg text-gray-600 hover:bg-gray-50">إدارة الموظفين</button>
+            <button onclick="logout()" class="w-full text-right py-3 px-4 rounded-lg text-red-600 hover:bg-red-50 mt-10">تسجيل خروج</button>
+        </nav>
+    </aside>
 
-/* ✅ Tabs */
-function showTab(id){
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  event.target.classList.add("active");
-}
+    <main class="flex-1 flex flex-col">
+        <header class="bg-white p-6 shadow-sm flex justify-between items-center">
+            <h2 class="text-xl font-bold text-gray-700">مرحباً بك، عبد الرحمن</h2>
+        </header>
 
-let employeesData=[];
+        <div class="p-8">
+            <section id="dashboard" class="section active">
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 class="text-gray-500">إجمالي الموظفين</h3>
+                        <p id="totalEmployees" class="text-3xl font-bold text-blue-600">--</p>
+                    </div>
+                </div>
+            </section>
 
-/* ================= EMPLOYEES ================= */
+            <section id="employees" class="section">
+                <div class="bg-white p-6 rounded-2xl shadow-sm">
+                    <h3 class="font-bold text-xl mb-6">قائمة الموظفين</h3>
+                    <table class="w-full text-right">
+                        <thead>
+                            <tr class="border-b text-gray-400">
+                                <th class="pb-3">الاسم</th>
+                                <th class="pb-3">رقم الهوية</th>
+                                <th class="pb-3">الجنسية</th>
+                                <th class="pb-3">الراتب</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeesTable"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
 
-async function loadEmployees(){
-  try {
-    const res = await fetch(API + "/employees");
-    const data = await res.json();
-    employeesData = data;
-    renderEmployees(data);
-  } catch {
-    console.log("خطأ في تحميل الموظفين");
-  }
-}
+    <script>
+        const API = "https://daring-trust-production-8c34.up.railway.app";
 
-function renderEmployees(data){
-  const table = document.getElementById("employeesTable");
-  if(!table) return;
-  table.innerHTML = "";
+        // التحقق من الجلسة
+        if (!sessionStorage.getItem("token")) { window.location.href = "/"; }
 
-  data.forEach(e=>{
-    table.innerHTML += `
-      <tr>
-        <td>${e.name}</td>
-        <td>${e.national_id}</td>
-        <td>${e.nationality || "-"}</td>
-        <td>${e.salary || 0}</td>
-      </tr>
-    `;
-  });
-}
+        function showTab(id) {
+            document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+            document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+            document.getElementById(id).classList.add("active");
+            event.target.classList.add("active");
+        }
 
-/* ================= LOGOUT ================= */
+        async function loadEmployees() {
+            try {
+                const res = await fetch(API + "/employees", {
+                    headers: { "Authorization": "Bearer " + sessionStorage.getItem("token") }
+                });
+                const data = await res.json();
+                const table = document.getElementById("employeesTable");
+                document.getElementById("totalEmployees").textContent = data.length;
+                table.innerHTML = "";
+                data.forEach(e => {
+                    table.innerHTML += `
+                        <tr class="border-b last:border-0 hover:bg-gray-50">
+                            <td class="py-4 font-bold">${e.name}</td>
+                            <td class="py-4">${e.national_id}</td>
+                            <td class="py-4">${e.nationality || "-"}</td>
+                            <td class="py-4">${e.salary || 0} ر.س</td>
+                        </tr>
+                    `;
+                });
+            } catch {
+                console.error("خطأ في تحميل الموظفين");
+            }
+        }
 
-function logout(){
-  sessionStorage.clear();
-  window.location.href = "/";
-}
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = "/";
+        }
 
-/* ================= INIT ================= */
-
-loadEmployees();
-
-</script>
+        loadEmployees();
+    </script>
+</body>
+</html>
