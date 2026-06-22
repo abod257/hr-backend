@@ -1,75 +1,137 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تسجيل الدخول</title>
-
-<style>
-body{
-  font-family: Arial;
-  background:#eef4ff;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-.card{
-  background:#fff;
-  padding:30px;
-  width:350px;
-  border-radius:12px;
-  text-align:center;
-}
-input{
-  width:100%;
-  padding:10px;
-  margin:10px 0;
-}
-button{
-  width:100%;
-  padding:10px;
-  background:#0f172a;
-  color:white;
-  border:none;
-  cursor:pointer;
-}
-.message{
-  margin-top:10px;
-  color:red;
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شركة لانا الطبية | تسجيل الدخول</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body{
+      font-family:'Cairo',sans-serif;
+      background:#eef4ff;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      margin:0;
+    }
+    .card{
+      background:#fff;
+      padding:30px;
+      width:360px;
+      border-radius:20px;
+      box-shadow:0 20px 40px rgba(0,0,0,0.1);
+      text-align:center;
+    }
+    input{
+      width:100%;
+      padding:12px;
+      margin:10px 0;
+      border-radius:10px;
+      border:1px solid #ccc;
+    }
+    button{
+      width:100%;
+      padding:12px;
+      border:none;
+      border-radius:10px;
+      background:#0f172a;
+      color:#fff;
+      font-weight:bold;
+      cursor:pointer;
+    }
+    button:hover{opacity:.9;}
+    .admin-box{
+      margin-bottom:20px;
+      text-align:right;
+    }
+    .message{
+      margin-top:10px;
+      font-weight:bold;
+    }
+  </style>
 </head>
-
 <body>
 
 <div class="card">
-  <h2>تسجيل الدخول</h2>
 
-  <input id="employeeName" type="text" placeholder="الاسم">
+  <div class="admin-box">
+    <details>
+      <summary>دخول المسؤول</summary>
+      <input id="adminPassword" type="password" placeholder="كلمة المرور">
+      <button onclick="login()">دخول المسؤول</button>
+    </details>
+  </div>
+
+  <h2>تسجيل دخول الموظفين</h2>
+
+  <input id="employeeName" type="text" placeholder="الاسم الكامل">
   <input id="employeeNationalId" type="text" placeholder="رقم الهوية">
 
-  <button onclick="login()">دخول</button>
+  <button onclick="login()">تحقق ودخول</button>
 
-  <div id="msg" class="message"></div>
+  <div class="message" id="msg"></div>
+
 </div>
 
 <script>
+const API_BASE = "https://daring-trust-production-8c34.up.railway.app";
 
-function login(){
+async function login() {
+
+  const msg = document.getElementById("msg");
+  msg.innerHTML = "";
 
   const name = document.getElementById("employeeName").value.trim();
   const national_id = document.getElementById("employeeNationalId").value.trim();
+  const adminPassword = document.getElementById("adminPassword").value.trim();
 
-  if(name === "admin" && national_id === "0000"){
-    window.location.href = "/admin-dashboard.html";
+  // ✅ تسجيل دخول موظف
+  if (name && national_id) {
+    try {
+      const response = await fetch(API_BASE + "/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, national_id })
+      });
+
+      if (!response.ok) {
+        msg.style.color = "red";
+        msg.innerHTML = "❌ الاسم أو رقم الهوية غير صحيح";
+        return;
+      }
+
+      const data = await response.json();
+
+      // ✅ حفظ الجلسة
+      sessionStorage.setItem("empName", data.employee.name);
+      sessionStorage.setItem("empNationalId", data.employee.national_id);
+
+      msg.style.color = "green";
+      msg.innerHTML = "✅ تم تسجيل الدخول بنجاح";
+
+      setTimeout(() => {
+        window.location.href = "/employee-dashboard.html";
+      }, 800);
+
+    } catch (error) {
+      msg.style.color = "red";
+      msg.innerHTML = "❌ خطأ في الاتصال بالخادم";
+    }
+
     return;
   }
 
-  document.getElementById("msg").innerText = "بيانات غير صحيحة";
-
+  // ✅ تسجيل دخول مسؤول (مؤقت)
+  if (adminPassword) {
+    if (adminPassword === "admin123") {
+      window.location.href = "/admin-dashboard.html";
+    } else {
+      msg.style.color = "red";
+      msg.innerHTML = "❌ كلمة المرور غير صحيحة";
+    }
+  }
 }
-
 </script>
 
 </body>
