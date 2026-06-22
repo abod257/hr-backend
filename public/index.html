@@ -1,76 +1,28 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تسجيل الدخول</title>
-
-<style>
-body{
-  font-family: Arial;
-  background:#eef4ff;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-.card{
-  background:#fff;
-  padding:30px;
-  width:350px;
-  border-radius:12px;
-  text-align:center;
-}
-input{
-  width:100%;
-  padding:10px;
-  margin:10px 0;
-}
-button{
-  width:100%;
-  padding:10px;
-  background:#0f172a;
-  color:white;
-  border:none;
-  cursor:pointer;
-}
-.message{
-  margin-top:10px;
-  color:red;
-}
-</style>
+    <meta charset="UTF-8">
+    <title>تسجيل الدخول - نظام الموارد البشرية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-gray-100 h-screen flex items-center justify-center">
 
-<body>
+    <div class="bg-white w-[900px] h-[550px] rounded-2xl shadow-2xl flex overflow-hidden">
+        <div class="w-1/2 bg-blue-50 p-10 flex flex-col justify-center">
+            <h2 class="text-3xl font-bold text-blue-900 mb-4">سهل ... متكامل ... سحابي</h2>
+            <p class="text-gray-600">نظام إدارة الموارد البشرية المتطور</p>
+        </div>
 
-<div class="card">
-  <h2>تسجيل الدخول</h2>
-
-  <input id="employeeName" type="text" placeholder="الاسم">
-  <input id="employeeNationalId" type="text" placeholder="رقم الهوية">
-
-  <button onclick="login()">دخول</button>
-
-  <div id="msg" class="message"></div>
-</div>
-
-<script>
-
-function login(){
-
-  const name = document.getElementById("employeeName").value.trim();
-  const national_id = document.getElementById("employeeNationalId").value.trim();
-
-  if(name === "admin" && national_id === "0000"){
-    window.location.href = "/admin-dashboard.html";
-    return;
-  }
-
-  document.getElementById("msg").innerText = "بيانات غير صحيحة";
-
-}
-
-</script>
+        <div class="w-1/2 p-10 flex flex-col justify-center">
+            <h1 class="text-3xl font-bold text-blue-600 mb-6">ektefa</h1>
+            <form id="loginForm" class="space-y-4">
+                <input type="text" placeholder="نطاق الشركة" class="w-full p-3 border rounded-lg">
+                <input type="text" placeholder="اسم المستخدم" class="w-full p-3 border rounded-lg">
+                <input type="password" placeholder="كلمة المرور" class="w-full p-3 border rounded-lg">
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">دخول | Login</button>
+            </form>
+        </div>
+    </div>
 
 </body>
 </html>
