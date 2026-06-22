@@ -1,131 +1,89 @@
-<script>
-const API_BASE = "https://daring-trust-production-8c34.up.railway.app";
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة تحكم الموظف</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
 
-/* ✅ قراءة بيانات الجلسة */
-const token = sessionStorage.getItem("token");
-const role = sessionStorage.getItem("role");
-const userId = sessionStorage.getItem("userId");
-const empName = sessionStorage.getItem("empName");
+    <nav class="bg-blue-600 p-4 text-white shadow-lg flex justify-between items-center px-10">
+        <h1 class="font-bold text-xl">نظام الموارد البشرية | <span id="empName"></span></h1>
+        <button onclick="logout()" class="bg-red-500 px-4 py-2 rounded text-sm hover:bg-red-600">تسجيل خروج</button>
+    </nav>
 
-if (!token || role !== "employee" || !userId) {
-  window.location.href = "/";
-}
+    <div class="container mx-auto p-6">
+        <div class="bg-white p-6 rounded-xl shadow-md mb-6">
+            <h2 class="text-xl font-bold mb-4">طلباتي السابقة</h2>
+            <table class="w-full text-right border-collapse">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="p-3">نوع الطلب</th>
+                        <th class="p-3">التاريخ</th>
+                        <th class="p-3">الحالة</th>
+                        <th class="p-3">رد الإدارة</th>
+                    </tr>
+                </thead>
+                <tbody id="requestsTable"></tbody>
+            </table>
+        </div>
+    </div>
 
-/* ✅ Header موحد */
-function authHeader(isJson = true){
-  const headers = {
-    "Authorization": "Bearer " + token
-  };
-  if (isJson) headers["Content-Type"] = "application/json";
-  return headers;
-}
+    <script>
+        const API_BASE = "https://daring-trust-production-8c34.up.railway.app";
 
-/* ✅ عرض الاسم مباشرة */
-document.getElementById("empName").textContent = empName;
+        // ✅ قراءة بيانات الجلسة
+        const token = sessionStorage.getItem("token");
+        const role = sessionStorage.getItem("role");
+        const userId = sessionStorage.getItem("userId");
+        const empName = sessionStorage.getItem("empName");
 
-/* ✅ تحميل طلبات الموظف */
-async function loadRequests(){
-  try {
+        // التأكد من تسجيل الدخول
+        if (!token || role !== "employee" || !userId) {
+            window.location.href = "/";
+        }
 
-    const res = await fetch(API_BASE + "/requests/" + userId, {
-      headers: authHeader()
-    });
+        // ✅ Header موحد للطلبات
+        function authHeader(isJson = true) {
+            const headers = { "Authorization": "Bearer " + token };
+            if (isJson) headers["Content-Type"] = "application/json";
+            return headers;
+        }
 
-    if (!res.ok) {
-      logout();
-      return;
-    }
+        // ✅ عرض الاسم
+        document.getElementById("empName").textContent = empName || "موظف";
 
-    const data = await res.json();
+        // ✅ تحميل البيانات
+        async function loadRequests() {
+            try {
+                const res = await fetch(`${API_BASE}/requests/${userId}`, { headers: authHeader() });
+                if (!res.ok) { logout(); return; }
+                const data = await res.json();
+                const table = document.getElementById("requestsTable");
+                table.innerHTML = "";
+                data.forEach(r => {
+                    table.innerHTML += `
+                        <tr class="border-b">
+                            <td class="p-3">${r.type}</td>
+                            <td class="p-3">${new Date(r.created_at).toLocaleDateString()}</td>
+                            <td class="p-3 font-bold text-blue-600">${r.status}</td>
+                            <td class="p-3 text-gray-600">${r.admin_reply || "-"}</td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                console.error("خطأ في الاتصال:", error);
+            }
+        }
 
-    const table = document.getElementById("requestsTable");
-    table.innerHTML = "";
+        // ✅ تسجيل خروج
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = "/";
+        }
 
-    data.forEach(r=>{
-      table.innerHTML += `
-        <tr>
-          <td>${r.type}</td>
-          <td>${new Date(r.created_at).toLocaleDateString()}</td>
-          <td>${r.status}</td>
-          <td>${r.admin_reply || "-"}</td>
-        </tr>
-      `;
-    });
-
-  } catch (error) {
-    alert("خطأ في تحميل البيانات");
-  }
-}
-
-/* ✅ إرسال طلب */
-async function submitRequest(type){
-
-  let details = "";
-
-  if(type==="leave"){
-    details = `من ${leaveStart.value} إلى ${leaveEnd.value} - ${leaveReason.value}`;
-  }
-
-  if(type==="loan"){
-    details = `المبلغ ${loanAmount.value} - ${loanReason.value}`;
-  }
-
-  if(type==="complaint"){
-    details = complaintText.value;
-  }
-
-  if(type==="promotion"){
-    details = `${promotionTitle.value} - ${promotionReason.value}`;
-  }
-
-  if(!details){
-    alert("الرجاء إدخال البيانات");
-    return;
-  }
-
-  await fetch(API_BASE + "/requests",{
-    method:"POST",
-    headers: authHeader(),
-    body: JSON.stringify({
-      employee_id: userId,
-      type,
-      details
-    })
-  });
-
-  loadRequests();
-}
-
-/* ✅ رفع ملف */
-async function uploadFile(){
-
-  const file = fileUpload.files[0];
-  if(!file){
-    alert("اختر ملف أولاً");
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("employee_id", userId);
-
-  await fetch(API_BASE + "/upload-file",{
-    method:"POST",
-    headers:{
-      "Authorization": "Bearer " + token
-    },
-    body: formData
-  });
-
-  alert("✅ تم رفع الملف");
-}
-
-/* ✅ تسجيل خروج */
-function logout(){
-  sessionStorage.clear();
-  window.location.href = "/";
-}
-
-/* ✅ بدء التحميل */
-loadRequests();
-</script>
+        // تنفيذ عند التحميل
+        loadRequests();
+    </script>
+</body>
+</html>
