@@ -1,76 +1,57 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تسجيل الدخول</title>
-
-<style>
-body{
-  font-family: Arial;
-  background:#eef4ff;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-.card{
-  background:#fff;
-  padding:30px;
-  width:350px;
-  border-radius:12px;
-  text-align:center;
-}
-input{
-  width:100%;
-  padding:10px;
-  margin:10px 0;
-}
-button{
-  width:100%;
-  padding:10px;
-  background:#0f172a;
-  color:white;
-  border:none;
-  cursor:pointer;
-}
-.message{
-  margin-top:10px;
-  color:red;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - Ektefa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-gray-50 h-screen flex items-center justify-center font-sans">
 
-<body>
+    <div class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-auto md:h-[600px]">
+        
+        <div class="hidden md:flex flex-1 bg-blue-50 flex-col items-center justify-center p-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">سهل ... متكامل ... سحابي ...</h2>
+            <p class="text-xl text-gray-600 mb-8">Simple ... Unified ... Cloud ...</p>
+            <div class="bg-white p-4 rounded-lg shadow-lg border">
+                <div class="w-64 h-40 bg-gray-200 rounded flex items-center justify-center text-gray-400">صورة النظام هنا</div>
+            </div>
+        </div>
 
-<div class="card">
-  <h2>تسجيل الدخول</h2>
+        <div class="flex-1 p-8 md:p-12 flex flex-col justify-center">
+            <div class="mb-8 text-center md:text-right">
+                <h1 class="text-4xl font-bold text-blue-600">ektefa</h1>
+                <p class="text-gray-600 mt-2">يرجى إدخال تفاصيل الدخول</p>
+            </div>
 
-  <input id="employeeName" type="text" placeholder="الاسم">
-  <input id="employeeNationalId" type="text" placeholder="رقم الهوية">
+            <form class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">نطاق الشركة</label>
+                    <input type="text" class="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none" placeholder="laramed">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">اسم المستخدم</label>
+                    <input type="text" class="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none" placeholder="2558052235">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">كلمة المرور</label>
+                    <input type="password" class="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none" placeholder="••••••••">
+                </div>
+                
+                <div class="flex items-center text-green-600 font-semibold text-sm">
+                    <span>✓ تم التحقق بنجاح</span>
+                </div>
 
-  <button onclick="login()">دخول</button>
+                <button class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition">
+                    دخول | Login
+                </button>
+            </form>
 
-  <div id="msg" class="message"></div>
-</div>
-
-<script>
-
-function login(){
-
-  const name = document.getElementById("employeeName").value.trim();
-  const national_id = document.getElementById("employeeNationalId").value.trim();
-
-  if(name === "admin" && national_id === "0000"){
-    window.location.href = "/admin-dashboard.html";
-    return;
-  }
-
-  document.getElementById("msg").innerText = "بيانات غير صحيحة";
-
-}
-
-</script>
+            <div class="mt-6 text-center text-sm text-gray-500">
+                <a href="#" class="text-blue-600 hover:underline">هل فقدت كلمة المرور؟</a>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>
