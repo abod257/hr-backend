@@ -1,8 +1,22 @@
 <script>
 const API = "https://daring-trust-production-8c34.up.railway.app";
 
-/* ✅ لا يوجد تحقق حالياً */
-console.log("Admin dashboard loaded");
+/* ✅ قراءة الجلسة */
+const token = sessionStorage.getItem("token");
+const role = sessionStorage.getItem("role");
+
+if (!token || role !== "admin") {
+  window.location.href = "/";
+}
+
+/* ✅ Header موحد */
+function authHeader(isJson = true){
+  const headers = {
+    "Authorization": "Bearer " + token
+  };
+  if (isJson) headers["Content-Type"] = "application/json";
+  return headers;
+}
 
 /* ✅ Tabs */
 function showTab(id){
@@ -18,18 +32,23 @@ let employeesData=[];
 
 async function loadEmployees(){
   try {
-    const res = await fetch(API + "/employees");
+    const res = await fetch(API + "/employees", {
+      headers: authHeader()
+    });
+
+    if (!res.ok) return logout();
+
     const data = await res.json();
     employeesData = data;
     renderEmployees(data);
+
   } catch {
-    console.log("خطأ في تحميل الموظفين");
+    alert("خطأ في تحميل الموظفين");
   }
 }
 
 function renderEmployees(data){
   const table = document.getElementById("employeesTable");
-  if(!table) return;
   table.innerHTML = "";
 
   data.forEach(e=>{
@@ -37,8 +56,142 @@ function renderEmployees(data){
       <tr>
         <td>${e.name}</td>
         <td>${e.national_id}</td>
-        <td>${e.nationality || "-"}</td>
+        <td>${e.department || "-"}</td>
+        <td>${e.position || "-"}</td>
         <td>${e.salary || 0}</td>
+        <td>${e.status}</td>
+        <td>
+          <button class="btn btn-archive" onclick="archiveEmployee(${e.id})">أرشفة</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function filterEmployees(){
+  const val = document.getElementById("searchInput").value.toLowerCase();
+  const filtered = employeesData.filter(e =>
+    e.name.toLowerCase().includes(val) ||
+    e.national_id.includes(val)
+  );
+  renderEmployees(filtered);
+}
+
+async function archiveEmployee(id){
+  await fetch(API + "/employees/archive/" + id, {
+    method:"PUT",
+    headers: authHeader()
+  });
+  loadEmployees();
+}
+
+/* ================= REQUESTS ================= */
+
+async function loadRequests(){
+  try {
+
+    const res = await fetch(API + "/requests", {
+      headers: authHeader()
+    });
+
+    if (!res.ok) return logout();
+
+    const data = await res.json();
+    const table = document.getElementById("requestsTable");
+    table.innerHTML = "";
+
+    data.forEach(r=>{
+      table.innerHTML += `
+        <tr>
+          <td>${r.name}</td>
+          <td>${r.type}</td>
+          <td>${r.details}</td>
+          <td>${r.status}</td>
+          <td>
+            <textarea id="reply_${r.id}">${r.admin_reply || ""}</textarea>
+          </td>
+          <td>
+            <button onclick="updateRequest(${r.id},'approved')">اعتماد</button>
+            <button onclick="updateRequest(${r.id},'rejected')">رفض</button>
+          </td>
+        </tr>
+      `;
+    });
+
+  } catch {
+    alert("خطأ في تحميل الطلبات");
+  }
+}
+
+async function updateRequest(id,status){
+  const reply = document.getElementById("reply_"+id).value;
+
+  await fetch(API + "/requests/" + id,{
+    method:"PUT",
+    headers: authHeader(),
+    body: JSON.stringify({ status, admin_reply: reply })
+  });
+
+  loadRequests();
+}
+
+/* ================= SALARY ================= */
+
+async function loadSalary(){
+  const res = await fetch(API + "/employees", {
+    headers: authHeader()
+  });
+
+  const data = await res.json();
+  const table = document.getElementById("salaryTable");
+  table.innerHTML = "";
+
+  data.forEach(e=>{
+    table.innerHTML += `
+      <tr>
+        <td>${e.name}</td>
+        <td>${e.salary || 0}</td>
+        <td>
+          <button onclick="updateSalary(${e.id})">تعديل</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function updateSalary(id){
+  const salary = prompt("أدخل الراتب الجديد:");
+  if(!salary) return;
+
+  await fetch(API + "/employees/" + id,{
+    method:"PUT",
+    headers: authHeader(),
+    body: JSON.stringify({ salary })
+  });
+
+  loadSalary();
+}
+
+/* ================= FILES ================= */
+
+async function loadFiles(){
+  const res = await fetch(API + "/files", {
+    headers: authHeader()
+  });
+
+  const data = await res.json();
+  const table = document.getElementById("filesTable");
+  table.innerHTML = "";
+
+  data.forEach(f=>{
+    table.innerHTML += `
+      <tr>
+        <td>${f.name}</td>
+        <td>
+          <a href="${API}/uploads/${f.file_path}" target="_blank">
+            ${f.file_name}
+          </a>
+        </td>
       </tr>
     `;
   });
@@ -54,5 +207,8 @@ function logout(){
 /* ================= INIT ================= */
 
 loadEmployees();
+loadRequests();
+loadSalary();
+loadFiles();
 
 </script>
