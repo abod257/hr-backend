@@ -1,58 +1,49 @@
-<script>
-const API = "https://daring-trust-production-8c34.up.railway.app";
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة تحكم المسؤول</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 12px; }
+        th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    <h1>قائمة الموظفين</h1>
+    <table id="employeesTable">
+        <thead>
+            <tr>
+                <th>الاسم</th>
+                <th>رقم الهوية</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td colspan="2">جاري تحميل البيانات...</td></tr>
+        </tbody>
+    </table>
 
-/* ✅ لا يوجد تحقق حالياً */
-console.log("Admin dashboard loaded");
+    <script>
+        // الرابط الكامل للسيرفر الخاص بك لتجنب خطأ 404
+        const API = "https://daring-trust-production-8c34.up.railway.app";
 
-/* ✅ Tabs */
-function showTab(id){
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  event.target.classList.add("active");
-}
-
-let employeesData=[];
-
-/* ================= EMPLOYEES ================= */
-
-async function loadEmployees(){
-  try {
-    const res = await fetch(API + "/employees");
-    const data = await res.json();
-    employeesData = data;
-    renderEmployees(data);
-  } catch {
-    console.log("خطأ في تحميل الموظفين");
-  }
-}
-
-function renderEmployees(data){
-  const table = document.getElementById("employeesTable");
-  if(!table) return;
-  table.innerHTML = "";
-
-  data.forEach(e=>{
-    table.innerHTML += `
-      <tr>
-        <td>${e.name}</td>
-        <td>${e.national_id}</td>
-        <td>${e.nationality || "-"}</td>
-        <td>${e.salary || 0}</td>
-      </tr>
-    `;
-  });
-}
-
-/* ================= LOGOUT ================= */
-
-function logout(){
-  sessionStorage.clear();
-  window.location.href = "/";
-}
-
-/* ================= INIT ================= */
-
-loadEmployees();
-
-</script>
+        async function loadEmployees() {
+            try {
+                const res = await fetch(API + "/employees");
+                const data = await res.json();
+                const tbody = document.querySelector("#employeesTable tbody");
+                tbody.innerHTML = "";
+                
+                data.forEach(e => {
+                    tbody.innerHTML += `<tr><td>${e.name}</td><td>${e.national_id}</td></tr>`;
+                });
+            } catch (err) {
+                console.error("خطأ:", err);
+                document.querySelector("#employeesTable tbody").innerHTML = "<tr><td colspan='2'>خطأ في الاتصال بالسيرفر</td></tr>";
+            }
+        }
+        loadEmployees();
+    </script>
+</body>
+</html>
